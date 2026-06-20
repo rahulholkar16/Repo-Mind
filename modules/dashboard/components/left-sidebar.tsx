@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Sun, Moon, X } from "lucide-react";
+import { toast } from "sonner";
 import { RepoBrainMark } from "@/components/RepoBrainMark";
 import type { RepoInfo, Session  } from "@/lib/types";
 import { RepoConnect } from "./sidebar/repo-connect";
@@ -102,8 +103,12 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
       }
 
       onConnect(repoData);
-    } catch (err: any) {
-      alert(err.message || "Failed to connect to the repository. Make sure the AI backend is running on http://localhost:8000");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Failed to connect to the repository. Make sure the AI backend is running on http://localhost:8000";
+      toast.error(message);
     } finally {
       setConnecting(false);
     }

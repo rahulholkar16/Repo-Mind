@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Bug, GitPullRequest, Boxes, BookOpen, Zap, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import type { RepoInfo  } from "@/lib/types";
 
 const ACTIONS = [
@@ -15,7 +16,7 @@ export function QuickActions({ repo }: { repo: RepoInfo | null }) {
 
   function handleActionClick(actionId: string) {
     if (!repo) {
-      alert("Please connect a GitHub repository first.");
+      toast.error("Please connect a GitHub repository first.");
       return;
     }
     let promptText = "";

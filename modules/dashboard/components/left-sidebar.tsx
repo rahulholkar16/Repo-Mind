@@ -18,7 +18,7 @@ interface LeftSidebarProps {
   onClose?: () => void;
 }
 
-import { cloneRepository, indexRepository, getTechStack, getArchitecture, getRepositoryTree } from "@/lib/api";
+import { getRepoInfo, indexRepository, getRepositoryTree } from "@/lib/api";
 
 const INITIAL_SESSIONS: Session[] = [];
 
@@ -38,7 +38,7 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
         .replace(/^github\.com\//, "");
       // Remove trailing slash or .git
       cleaned = cleaned.replace(/\.git$/, "").replace(/\/$/, "");
-      
+
       const parts = cleaned.split("/");
       if (parts.length < 2) {
         throw new Error("Invalid repository path. Use format: owner/name");
@@ -47,54 +47,31 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
       const name = parts[1];
       const repoUrl = `https://github.com/${owner}/${name}`;
 
-      // 1. Fetch real metadata from GitHub API (with fallback if rate-limited or offline)
+      // 1. Fetch repo metadata via our backend (uses a GitHub token, avoids
+      //    the frontend hitting GitHub's public rate limit directly)
       let repoData: RepoInfo = {
         owner,
         name,
-        language: "TypeScript",
-        stars: 1200,
-        description: "GitHub repository analyzed by RepoBrain",
+        language: "Unknown",
+        stars: 0,
+        description: "",
       };
 
       try {
-        const ghRes = await fetch(`https://api.github.com/repos/${owner}/${name}`);
-        if (ghRes.ok) {
-          const ghJson = await ghRes.json();
-          repoData = {
-            owner: ghJson.owner?.login || owner,
-            name: ghJson.name || name,
-            language: ghJson.language || "TypeScript",
-            stars: ghJson.stargazers_count || 0,
-            description: ghJson.description || "No description provided.",
-          };
-        }
+        const info = await getRepoInfo(repoUrl);
+        repoData = { ...repoData, ...info };
       } catch (e) {
-        console.warn("Could not fetch github metadata, using fallbacks:", e);
+        console.warn("Could not fetch repo info, using fallbacks:", e);
       }
 
-      // 2. Clone and Index the repository in the backend AI services
-      await cloneRepository(repoUrl);
+      // 2. Index the repository (RepoBrain V2 reads files via the GitHub
+      //    API directly — there is no separate clone step)
       const indexRes = await indexRepository(repoUrl);
-
-      if (indexRes && typeof indexRes.indexed_chunks === "number") {
-        repoData.indexedChunks = indexRes.indexed_chunks;
+      if (indexRes && typeof indexRes.total_chunks === "number") {
+        repoData.indexedChunks = indexRes.total_chunks;
       }
 
-      // 3. Fetch Tech Stack, Architecture, and File Tree reports
-      try {
-        const tsRes = await getTechStack(repoUrl);
-        repoData.techStack = tsRes.answer;
-      } catch (e) {
-        console.error("Failed to fetch tech stack:", e);
-      }
-
-      try {
-        const archRes = await getArchitecture(repoUrl);
-        repoData.architecture = archRes;
-      } catch (e) {
-        console.error("Failed to fetch architecture:", e);
-      }
-
+      // 3. Fetch the file tree for the right panel
       try {
         const treeRes = await getRepositoryTree(repoUrl);
         repoData.fileTree = treeRes.tree;

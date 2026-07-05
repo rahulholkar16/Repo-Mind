@@ -84,7 +84,12 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
         ]
       }]);
 
-      const response = await askAgent(repoUrl, text, activeSession || "default");
+      // thread_id keeps conversation memory in Postgres; repo_id is just a
+      // stable identifier for the current repo (owner/name works fine here).
+      const threadId = activeSession || "default";
+      const repoId = repo ? `${repo.owner}/${repo.name}` : "unknown";
+
+      const response = await askAgent(repoUrl, text, threadId, repoId);
 
       setMessages(prev => {
         const filtered = prev.filter(m => !m.toolCalls);

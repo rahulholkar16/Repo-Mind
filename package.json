@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "worker": "bun run worker.ts"
   },
   "type": "module",
   "dependencies": {
@@ -44,6 +45,7 @@
     "@radix-ui/react-toggle-group": "^1.1.12",
     "@radix-ui/react-tooltip": "^1.2.9",
     "better-auth": "^1.6.22",
+    "bullmq": "^5.80.2",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -52,6 +54,7 @@
     "dotenv": "^17.4.2",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "ioredis": "^5.11.1",
     "lucide-react": "0.487.0",
     "motion": "^12.40.0",
     "next": "16.2.9",
@@ -92,5 +95,8 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "overrides": {
+    "ioredis": "5.11.1"
+  }
 }

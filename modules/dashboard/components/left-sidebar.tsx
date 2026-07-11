@@ -18,9 +18,40 @@ interface LeftSidebarProps {
   onClose?: () => void;
 }
 
-import { getRepoInfo, indexRepository, getRepositoryTree } from "@/lib/api";
+import { getRepoInfo, getRepositoryTree } from "@/lib/api";
+import type { RepoIndexJobResult } from "@/lib/queue";
 
 const INITIAL_SESSIONS: Session[] = [];
+
+/**
+ * Polls our BullMQ job-status API until the indexing job completes or fails.
+ * Simple fixed-interval polling — good enough since jobs run for seconds,
+ * not minutes. Swap for SSE/websockets later if needed.
+ */
+async function pollIndexJob(
+  jobId: string,
+  { intervalMs = 2000, timeoutMs = 120_000 }: { intervalMs?: number; timeoutMs?: number } = {}
+): Promise<RepoIndexJobResult> {
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    const res = await fetch(`/api/index-repo/status?jobId=${jobId}`);
+    if (!res.ok) throw new Error("Failed to check indexing status");
+
+    const data = await res.json();
+
+    if (data.state === "completed") {
+      return data.result as RepoIndexJobResult;
+    }
+    if (data.state === "failed") {
+      throw new Error(data.failedReason || "Repository indexing failed");
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  throw new Error("Repository indexing timed out");
+}
 
 export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActiveSession, isDark, setIsDark, isMobile = false, isTablet = false, onClose }: LeftSidebarProps) {
   const [urlInput,   setUrlInput]   = useState("");
@@ -64,9 +95,21 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
         console.warn("Could not fetch repo info, using fallbacks:", e);
       }
 
-      // 2. Index the repository (RepoBrain V2 reads files via the GitHub
-      //    API directly — there is no separate clone step)
-      const indexRes = await indexRepository(repoUrl);
+      // 2. Index the repository via a background job (BullMQ + Redis).
+      //    We enqueue the job then poll our own API for its status —
+      //    this keeps the request snappy and avoids Render cold-start
+      //    timeouts on big repos.
+      const enqueueRes = await fetch("/api/index-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: repoUrl }),
+      });
+      if (!enqueueRes.ok) {
+        throw new Error("Failed to queue repository indexing");
+      }
+      const { jobId } = await enqueueRes.json();
+
+      const indexRes = await pollIndexJob(jobId);
       if (indexRes && typeof indexRes.total_chunks === "number") {
         repoData.indexedChunks = indexRes.total_chunks;
       }

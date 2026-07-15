@@ -1,16 +1,21 @@
 import { Queue } from "bullmq";
-import { redisConnection } from "./redis";
+import { redis } from "@/lib/redis";
 
-export const repoIndexQueue = new Queue("repo-index-queue", {
-  connection: redisConnection,
+
+export const indexingQueue = new Queue('indexing-queue', { 
+    connection: redis,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 5000,
+        },
+        removeOnComplete: {
+            age: 60 * 60 * 24,
+            count: 1000,
+        },
+        removeOnFail: {
+            age: 60 * 60 * 24 * 7,
+        },
+    }
 });
-
-export interface RepoIndexJobData {
-  repo_url: string;
-}
-
-export interface RepoIndexJobResult {
-  message: string;
-  repo_full_name: string;
-  total_chunks: number;
-}

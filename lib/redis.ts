@@ -1,5 +1,7 @@
-import { Redis } from "ioredis";
+import Redis from "ioredis";
 
-export const redisConnection = new Redis(process.env.REDIS_URL as string, {
-  maxRetriesPerRequest: null, // required by BullMQ
+export const redis = new Redis({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
+    maxRetriesPerRequest: null,
 });

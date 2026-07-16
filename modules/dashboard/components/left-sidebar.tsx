@@ -18,40 +18,10 @@ interface LeftSidebarProps {
   onClose?: () => void;
 }
 
-import { getRepoInfo, getRepositoryTree } from "@/lib/api";
-import type { RepoIndexJobResult } from "@/lib/queue";
+import { getRepoInfo, indexRepository, getRepositoryTree } from "@/lib/api";
+import pollIndexJob from "@/lib/PollIndexJob";
 
 const INITIAL_SESSIONS: Session[] = [];
-
-/**
- * Polls our BullMQ job-status API until the indexing job completes or fails.
- * Simple fixed-interval polling — good enough since jobs run for seconds,
- * not minutes. Swap for SSE/websockets later if needed.
- */
-async function pollIndexJob(
-  jobId: string,
-  { intervalMs = 2000, timeoutMs = 120_000 }: { intervalMs?: number; timeoutMs?: number } = {}
-): Promise<RepoIndexJobResult> {
-  const start = Date.now();
-
-  while (Date.now() - start < timeoutMs) {
-    const res = await fetch(`/api/index-repo/status?jobId=${jobId}`);
-    if (!res.ok) throw new Error("Failed to check indexing status");
-
-    const data = await res.json();
-
-    if (data.state === "completed") {
-      return data.result as RepoIndexJobResult;
-    }
-    if (data.state === "failed") {
-      throw new Error(data.failedReason || "Repository indexing failed");
-    }
-
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-
-  throw new Error("Repository indexing timed out");
-}
 
 export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActiveSession, isDark, setIsDark, isMobile = false, isTablet = false, onClose }: LeftSidebarProps) {
   const [urlInput,   setUrlInput]   = useState("");
@@ -95,26 +65,7 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
         console.warn("Could not fetch repo info, using fallbacks:", e);
       }
 
-      // 2. Index the repository via a background job (BullMQ + Redis).
-      //    We enqueue the job then poll our own API for its status —
-      //    this keeps the request snappy and avoids Render cold-start
-      //    timeouts on big repos.
-      const enqueueRes = await fetch("/api/index-repo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: repoUrl }),
-      });
-      if (!enqueueRes.ok) {
-        throw new Error("Failed to queue repository indexing");
-      }
-      const { jobId } = await enqueueRes.json();
-
-      const indexRes = await pollIndexJob(jobId);
-      if (indexRes && typeof indexRes.total_chunks === "number") {
-        repoData.indexedChunks = indexRes.total_chunks;
-      }
-
-      // 3. Fetch the file tree for the right panel
+      // 2. Fetch the file tree for the right panel
       try {
         const treeRes = await getRepositoryTree(repoUrl);
         repoData.fileTree = treeRes.tree;
@@ -122,7 +73,34 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
         console.error("Failed to fetch file tree:", e);
       }
 
+      // 3. Index the repository (RepoBrain V2 reads files via the GitHub
+      //    API directly — there is no separate clone step)
+      const enqueRes = await fetch("/api/index-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: repoUrl })
+      });
+
+      if (!enqueRes.ok) {
+          throw new Error("Failed to queue repository indexing");
+      }
+
+      const { jobId } = await enqueRes.json();
+      const indexRes = await pollIndexJob(jobId);
+      if (indexRes && typeof indexRes.total_chunks === "number") {
+          repoData.indexedChunks = indexRes.total_chunks;
+      }
+
       onConnect(repoData);
+      // Force a fresh conversation thread whenever a (new) repo is connected —
+      // otherwise the agent keeps the old repo's messages/tool results in
+      // context and answers about the wrong repository.
+      const newId = crypto.randomUUID();
+      setSessions(prev => [
+        { id: newId, repoName: `${owner}/${name}`, title: "New conversation", timestamp: "Now" },
+        ...prev,
+      ]);
+      setActiveSession(newId);
     } catch (err: unknown) {
       const message =
         err instanceof Error && err.message
@@ -135,7 +113,7 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
   }
 
   function handleNewChat() {
-    const newId = String(Date.now());
+    const newId = crypto.randomUUID();
     setSessions(prev => [
       { id: newId, repoName: connectedRepo ? `${connectedRepo.owner}/${connectedRepo.name}` : "No repo", title: "New conversation", timestamp: "Now" },
       ...prev,
@@ -190,7 +168,7 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
       />
 
       <SessionHistory
-        sessions={sessions}
+        sessions={connectedRepo ? sessions.filter(s => s.repoName === `${connectedRepo.owner}/${connectedRepo.name}`) : []}
         activeSession={activeSession}
         setActiveSession={setActiveSession}
         onClose={onClose}

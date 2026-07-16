@@ -25,7 +25,7 @@ export function DashboardPage() {
   const isDesktop = width >= 1024;
 
   const [connectedRepo, setConnectedRepo] = useState<RepoInfo | null>(null);
-  const [activeSession, setActiveSession] = useState("1");
+  const [activeSession, setActiveSession] = useState<string>(() => crypto.randomUUID());
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const [rightOpen,     setRightOpen]     = useState(false);
 

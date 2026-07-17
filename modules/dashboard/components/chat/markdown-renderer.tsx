@@ -1,4 +1,5 @@
 import React from "react";
+import { CodeBlock } from "./code-block";
 
 interface MarkdownRendererProps {
   content: string;
@@ -29,6 +30,8 @@ function parseInline(text: string): React.ReactNode[] {
             padding: "2px 6px",
             borderRadius: "5px",
             border: "1px solid rgba(255, 107, 53, 0.15)",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
           }}
         >
           {part.slice(1, -1)}
@@ -148,6 +151,24 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     const line = lines[i];
     const trimmed = line.trim();
 
+    // Fenced code block: ```lang ... ```
+    if (trimmed.startsWith("```")) {
+      flushList(i);
+      flushTable(i);
+      const language = trimmed.slice(3).trim() || "text";
+      const codeLines: string[] = [];
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim() !== "```") {
+        codeLines.push(lines[j]);
+        j++;
+      }
+      blocks.push(
+        <CodeBlock key={`code-${i}`} language={language} code={codeLines.join("\n")} />
+      );
+      i = j; // skip past the closing fence (loop's i++ moves past it)
+      continue;
+    }
+
     // Check if line is a table row
     if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
       flushList(i);
@@ -222,5 +243,9 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   flushList(lines.length);
   flushTable(lines.length);
 
-  return <div style={{ display: "flex", flexDirection: "column" }}>{blocks}</div>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minWidth: 0, maxWidth: "100%", overflowWrap: "break-word", wordBreak: "break-word" }}>
+      {blocks}
+    </div>
+  );
 }

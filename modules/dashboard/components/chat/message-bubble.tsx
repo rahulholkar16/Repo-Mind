@@ -44,7 +44,7 @@ export function MessageBubble({ msg, index, isMobile }: { msg: Message; index: n
         {isUser ? <User size={12} style={{ color: "var(--primary)" }} /> : <Bot size={12} style={{ color: "var(--muted-foreground)" }} />}
       </div>
 
-      <div style={{ maxWidth, display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", gap: 4 }}>
+      <div style={{ maxWidth, minWidth: 0, display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", gap: 4 }}>
         <div style={{
           padding: isMobile ? "10px 13px" : "11px 14px",
           borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
@@ -54,6 +54,9 @@ export function MessageBubble({ msg, index, isMobile }: { msg: Message; index: n
           border: isUser ? "none" : "1px solid var(--border)",
           color: isUser ? "#fff" : "var(--foreground)",
           boxShadow: isUser ? "0 4px 24px rgba(255,107,53,0.25)" : "0 2px 12px rgba(0,0,0,0.06)",
+          maxWidth: "100%",
+          overflowWrap: "break-word",
+          wordBreak: "break-word",
         }}>
           <MarkdownRenderer content={msg.content} />
           {msg.codeBlock && <CodeBlock language={msg.codeBlock.language} code={msg.codeBlock.code} isMobile={isMobile} />}

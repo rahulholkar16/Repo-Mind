@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
     const job = await indexingQueue.getJob(jobId);
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
-    const state = job.getState();
-
+    const state = await job.getState();
+        
     return NextResponse.json({
         state,
         result: job.returnvalue ?? null,

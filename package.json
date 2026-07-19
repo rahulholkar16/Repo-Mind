@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "worker": "bun run worker.ts"
+    "lint": "eslint"
   },
   "type": "module",
   "dependencies": {
@@ -54,7 +53,7 @@
     "dotenv": "^17.4.2",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
-    "ioredis": "^5.11.1",
+    "ioredis": "5.10.1",
     "lucide-react": "0.487.0",
     "motion": "^12.40.0",
     "next": "16.2.9",
@@ -95,8 +94,5 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ],
-  "overrides": {
-    "ioredis": "5.11.1"
-  }
+  ]
 }

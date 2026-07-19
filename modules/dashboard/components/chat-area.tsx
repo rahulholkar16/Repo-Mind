@@ -111,7 +111,7 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
           id: String(Date.now() + 2),
           role: "agent",
           timestamp: now,
-          content: response.answer,
+          content: response.answer, 
           codeBlock: response.codeBlock,
         });
 

@@ -1,7 +1,7 @@
 import type { ToolCall } from "./types";
 
-// const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://ai-services-1zfs.onrender.com";
-const API_BASE = "http://0.0.0.0:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://ai-services-1zfs.onrender.com";
+// const API_BASE = "http://0.0.0.0:8000";
 const WORKER_API_URL = "http://host.docker.internal:8000"
 // V2 backend reads directly from the GitHub API — there is no clone step.
 // repo_full_name ("owner/repo") is derived on the backend from the URL,

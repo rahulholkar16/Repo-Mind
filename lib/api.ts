@@ -2,7 +2,6 @@ import type { ToolCall } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://ai-services-1zfs.onrender.com";
 // const API_BASE = "http://0.0.0.0:8000";
-const WORKER_API_URL = "http://host.docker.internal:8000"
 // V2 backend reads directly from the GitHub API — there is no clone step.
 // repo_full_name ("owner/repo") is derived on the backend from the URL,
 // so the frontend only ever needs to send the plain GitHub URL.
@@ -77,7 +76,7 @@ export async function getRepoInfo(repoUrl: string): Promise<RepoInfoResponse> {
  * Call this once per repo before chatting (agent tools rely on it).
  */
 export async function indexRepository(repoUrl: string): Promise<IndexRepoResponse> {
-  const res = await fetch(`${WORKER_API_URL}/api/repo/index`, {
+  const res = await fetch(`${API_BASE}/api/repo/index`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_url: repoUrl }),

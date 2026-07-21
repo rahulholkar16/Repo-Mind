@@ -1,0 +1,33 @@
+services:
+  # Redis instance for BullMQ job queue
+  - type: redis
+    name: repo-brain-redis
+    ipAllowList: []   # empty = only accessible from other Render services
+    plan: free
+    maxmemoryPolicy: noeviction
+
+  # Background worker (BullMQ) — runs lib/worker.ts inside Dockerfile.worker
+  - type: worker
+    name: repo-mind-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile.worker
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: REDIS_HOST
+        fromService:
+          name: repo-brain-redis
+          type: redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: repo-brain-redis
+          type: redis
+          property: port
+      - key: REDIS_URL
+        fromService:
+          name: repo-brain-redis
+          type: redis
+          property: connectionString
+      - key: NEXT_PUBLIC_API_URL
+        sync: false   # set manually in Render dashboard (production AI-services URL)

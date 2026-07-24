@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import type { Message, RepoInfo  } from "@/lib/types";
@@ -6,7 +6,16 @@ import { ChatHeader } from "./chat/chat-header";
 import { MessageBubble } from "./chat/message-bubble";
 import { TypingIndicator } from "./chat/typing-indicator";
 import { ChatInput } from "./chat/chat-input";
-import { askAgent } from "@/lib/api";
+import { streamAgent } from "@/lib/api";
+
+let messageIdCounter = 0;
+/** Monotonically-unique id — Date.now() alone can collide when two
+ * messages are created within the same millisecond (e.g. user bubble
+ * immediately followed by the agent placeholder bubble). */
+function nextMessageId(): string {
+  messageIdCounter += 1;
+  return `${Date.now()}-${messageIdCounter}`;
+}
 
 interface ChatAreaProps {
   repo: RepoInfo | null;
@@ -27,32 +36,33 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const conversationKey = `${repo ? `${repo.owner}/${repo.name}` : "none"}::${activeSession ?? ""}`;
+  const [renderedKey, setRenderedKey] = useState(conversationKey);
+
+  
+  if (conversationKey !== renderedKey) {
+    setRenderedKey(conversationKey);
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setMessages(
+      repo
+        ? [{
+            id: "welcome",
+            role: "agent",
+            timestamp: now,
+            content: `Connected to **${repo.owner}/${repo.name}** — **${repo.language}** codebase. Ask me anything about this repository and I'll analyze it in real time.`,
+          }]
+        : [{
+            id: "welcome-default",
+            role: "agent",
+            timestamp: now,
+            content: "Welcome to **RepoBrain**! Please connect a GitHub repository in the sidebar to start the analysis.",
+          }]
+    );
+  }
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    if (repo) {
-      setMessages([
-        {
-          id: "welcome",
-          role: "agent",
-          timestamp: now,
-          content: `Connected to **${repo.owner}/${repo.name}** — **${repo.language}** codebase. Ask me anything about this repository and I'll analyze it in real time.`,
-        }
-      ]);
-    } else {
-      setMessages([
-        {
-          id: "welcome-default",
-          role: "agent",
-          timestamp: now,
-          content: "Welcome to **RepoBrain**! Please connect a GitHub repository in the sidebar to start the analysis.",
-        }
-      ]);
-    }
-  }, [repo, activeSession]);
 
   function handleScroll() {
     if (!scrollRef.current) return;
@@ -60,12 +70,35 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
     setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 100);
   }
 
-  async function submitMessage(text: string) {
+  const submitMessage = useCallback(async (text: string) => {
     if (isTyping) return;
     const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    setMessages(prev => [...prev, { id: String(Date.now()), role: "user", content: text, timestamp: now }]);
+    setMessages(prev => [...prev, { id: nextMessageId(), role: "user", content: text, timestamp: now }]);
     setIsTyping(true);
+
+    const agentMsgId = nextMessageId();
+    setMessages(prev => [...prev, {
+      id: agentMsgId,
+      role: "agent",
+      content: "",
+      timestamp: now,
+      toolCalls: [{ name: "thinking", args: "Reading the repo and planning a response..." }],
+    }]);
+
+    let receivedAnyChunk = false;
+    // Live-updated list of tool activity (call -> result) shown in the
+    // bubble's tool-row area while the agent is working.
+    const activeTools = new Map<string, { name: string; args?: string }>();
+
+    const updateAgentMessage = (partial: Partial<Pick<Message, "content" | "toolCalls">>) => {
+      setMessages(prev => prev.map(m => (m.id === agentMsgId ? { ...m, ...partial } : m)));
+    };
+
+    const pushToolStatus = (name: string, status: "calling" | "done") => {
+      activeTools.set(name, { name, args: status === "calling" ? "running..." : "done" });
+      updateAgentMessage({ toolCalls: Array.from(activeTools.values()) });
+    };
 
     try {
       const repoUrl = repo ? `https://github.com/${repo.owner}/${repo.name}` : "";
@@ -73,64 +106,44 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
         throw new Error("No repository connected. Please connect a repository first.");
       }
 
-      setMessages(prev => [...prev, {
-        id: String(Date.now() + 1),
-        role: "agent",
-        content: "",
-        timestamp: now,
-        toolCalls: [
-          { name: "search_codebase", args: text.slice(0, 32) },
-          { name: "read_file", args: "Analyzing repository..." }
-        ]
-      }]);
-
-      // thread_id keeps conversation memory in Postgres; repo_id is just a
-      // stable identifier for the current repo (owner/name works fine here).
       const threadId = activeSession || "default";
       const repoId = repo ? `${repo.owner}/${repo.name}` : "unknown";
 
-      const response = await askAgent(repoUrl, text, threadId, repoId);
-
-      setMessages(prev => {
-        const filtered = prev.filter(m => !m.toolCalls);
-        const newMessages = [...filtered];
-
-        // Display actual tool calls if the agent invoked tools
-        if (response.toolCalls && response.toolCalls.length > 0) {
-          newMessages.push({
-            id: String(Date.now() + 1),
-            role: "agent",
-            content: "",
-            timestamp: now,
-            toolCalls: response.toolCalls,
-          });
-        }
-
-        // Display final answer
-        newMessages.push({
-          id: String(Date.now() + 2),
-          role: "agent",
-          timestamp: now,
-          content: response.answer, 
-          codeBlock: response.codeBlock,
-        });
-
-        return newMessages;
+      await streamAgent(repoUrl, text, threadId, repoId, {
+        onToolCall: (toolName) => {
+          // Model just decided to call this tool — show it as active.
+          pushToolStatus(toolName, "calling");
+        },
+        onToolResult: (toolName) => {
+          // Tool finished — mark it done, but keep the row visible so the
+          // user can see everything the agent looked at.
+          pushToolStatus(toolName, "done");
+        },
+        onChunk: (chunk) => {
+          // This is the final answer text — clear tool activity and show it.
+          receivedAnyChunk = true;
+          updateAgentMessage({ content: chunk, toolCalls: undefined });
+        },
+        onDone: () => {
+          // Nothing more to do here — typing indicator stops in `finally`.
+        },
+        onError: (message) => {
+          updateAgentMessage({ content: `❌ **Agent Error:** ${message}`, toolCalls: undefined });
+        },
       });
+
+      if (!receivedAnyChunk) {
+        updateAgentMessage({ content: "The agent didn't return a response. Please try again.", toolCalls: undefined });
+      }
     } catch (err: any) {
-      setMessages(prev => {
-        const filtered = prev.filter(m => !m.toolCalls);
-        return [...filtered, {
-          id: String(Date.now() + 3),
-          role: "agent",
-          timestamp: now,
-          content: `❌ **Backend Error:** ${err.message || "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000."}`,
-        }];
+      updateAgentMessage({
+        content: `❌ **Backend Error:** ${err.message || "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000."}`,
+        toolCalls: undefined,
       });
     } finally {
       setIsTyping(false);
     }
-  }
+  }, [isTyping, repo, activeSession]);
 
   async function handleSend() {
     if (!input.trim() || isTyping) return;
@@ -148,7 +161,7 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
     };
     window.addEventListener("rb-send-message", handler);
     return () => window.removeEventListener("rb-send-message", handler);
-  }, [repo, activeSession, isTyping]);
+  }, [repo, activeSession, isTyping, submitMessage]);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", fontFamily: "'Inter', sans-serif", background: "transparent", position: "relative" }}>

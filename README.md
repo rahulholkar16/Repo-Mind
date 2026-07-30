@@ -16,6 +16,10 @@ Use the dashboard to connect a repository, follow indexing progress, and review 
 
 Keep the frontend and backend services running together when testing repository indexing or chat flows.
 
+## Environment
+
+Set `NEXT_PUBLIC_API_URL` when the frontend should call a deployed backend instead of a local service.
+
 ## Getting Started
 
 First, run the development server:

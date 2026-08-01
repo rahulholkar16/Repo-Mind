@@ -1,8 +1,11 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Sun, Moon, Menu, X } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 import { getC, mono, sans, type LandingProps } from "./landing-theme";
-import { RepoBrainMark } from "@/components/RepoBrainMark";
+import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
 
 export function Nav({ onEnterApp, isDark, setIsDark }: LandingProps) {
   const [scrolled, setScrolled] = useState(false);
@@ -17,27 +20,22 @@ export function Nav({ onEnterApp, isDark, setIsDark }: LandingProps) {
   }, []);
 
   const themeBtn = (
-    <motion.button
+    <Button
+      variant="outline"
+      size="icon"
       onClick={() => setIsDark(!isDark)}
-      whileTap={{ scale: 0.92 }}
-      style={{
-        width: 36, height: 36, borderRadius: 9,
-        border: `1px solid ${C.BORDER}`,
-        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
-        color: C.MUTED, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.2s", flexShrink: 0,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ORANGE; e.currentTarget.style.color = C.ORANGE; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.BORDER; e.currentTarget.style.color = C.MUTED; }}
+      className="w-9 h-9 rounded-[9px] flex-shrink-0 hover:border-primary hover:text-primary"
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      asChild={false}
     >
-      <AnimatePresence mode="wait">
-        <motion.span key={isDark ? "moon" : "sun"} initial={{ rotate: -30, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} exit={{ rotate: 30, opacity: 0, scale: 0.7 }} transition={{ duration: 0.18 }} style={{ display: "flex", alignItems: "center" }}>
-          {isDark ? <Sun size={15} /> : <Moon size={15} />}
-        </motion.span>
-      </AnimatePresence>
-    </motion.button>
+      <motion.span whileTap={{ scale: 0.92 }} className="flex items-center justify-center w-full h-full">
+        <AnimatePresence mode="wait">
+          <motion.span key={isDark ? "moon" : "sun"} initial={{ rotate: -30, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} exit={{ rotate: 30, opacity: 0, scale: 0.7 }} transition={{ duration: 0.18 }} className="flex items-center">
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          </motion.span>
+        </AnimatePresence>
+      </motion.span>
+    </Button>
   );
 
   return (
@@ -67,19 +65,25 @@ export function Nav({ onEnterApp, isDark, setIsDark }: LandingProps) {
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }} className="hidden-mobile">
             {themeBtn}
-            <button onClick={onEnterApp}
-              style={{ ...sans, padding: "8px 20px", borderRadius: 8, border: "none", background: C.ORANGE, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
-              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-            >Get started <ArrowRight size={14} /></button>
+            <Button
+              onClick={onEnterApp}
+              className="gap-1.5 rounded-lg"
+              style={{ background: C.ORANGE, color: "#fff" }}
+            >
+              Get started <ArrowRight size={14} />
+            </Button>
           </div>
 
           <div style={{ display: "none", alignItems: "center", gap: 8 }} className="show-mobile">
             {themeBtn}
-            <button onClick={() => setOpen(o => !o)}
-              style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.BORDER}`, background: "transparent", color: C.MUTED, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setOpen(o => !o)}
+              className="w-9 h-9 rounded-lg"
+            >
               {open ? <X size={16} /> : <Menu size={16} />}
-            </button>
+            </Button>
           </div>
         </div>
       </nav>
@@ -96,9 +100,9 @@ export function Nav({ onEnterApp, isDark, setIsDark }: LandingProps) {
                 </a>
               ))}
             </div>
-            <button onClick={onEnterApp} style={{ ...sans, padding: "13px", borderRadius: 8, border: "none", background: C.ORANGE, color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%" }}>
+            <Button onClick={onEnterApp} className="w-full rounded-lg" style={{ background: C.ORANGE, color: "#fff" }}>
               Get started →
-            </button>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

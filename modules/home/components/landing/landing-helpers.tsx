@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import React from "react";
+import { Badge } from "@/shared/components/ui/badge";
 
 export function getC(isDark: boolean) {
   return {
@@ -30,9 +31,13 @@ export interface LandingProps {
 
 export function Tag({ children, color }: { children: React.ReactNode; color: string }) {
   return (
-    <span style={{ ...mono, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", background: `${color}18`, border: `1px solid ${color}38`, color }}>
+    <Badge
+      variant="outline"
+      style={{ ...mono, background: `${color}18`, borderColor: `${color}38`, color }}
+      className="gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide"
+    >
       {children}
-    </span>
+    </Badge>
   );
 }
 

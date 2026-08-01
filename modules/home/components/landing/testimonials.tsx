@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import { Card } from "@/shared/components/ui/card";
 import { getC, mono, sans, Tag, FadeUp } from "./landing-theme";
 
 const TESTIMONIALS = [
@@ -25,7 +26,7 @@ export function Testimonials({ isDark }: { isDark: boolean }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }} className="testimonials-grid">
           {TESTIMONIALS.map((t, i) => (
             <FadeUp key={t.name} delay={i * 0.08}>
-              <div style={{ background: C.SURFACE, border: `1px solid ${C.BORDER}`, borderRadius: 20, padding: "28px 30px", height: "100%", transition: "border-color 0.2s, box-shadow 0.2s" }}
+              <Card style={{ background: C.SURFACE, borderColor: C.BORDER, borderRadius: 20, padding: "28px 30px", height: "100%", transition: "border-color 0.2s, box-shadow 0.2s" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = isDark ? "#3a3a3a" : "#ccc"; e.currentTarget.style.boxShadow = isDark ? "none" : "0 8px 32px rgba(0,0,0,0.06)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = C.BORDER; e.currentTarget.style.boxShadow = "none"; }}
               >
@@ -40,7 +41,7 @@ export function Testimonials({ isDark }: { isDark: boolean }) {
                     <div style={{ ...sans, fontSize: 12, color: C.MUTED }}>{t.role}</div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </FadeUp>
           ))}
         </div>

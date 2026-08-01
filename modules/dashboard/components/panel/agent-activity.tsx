@@ -1,76 +1,110 @@
-import { motion } from "motion/react";
-import { Activity, Zap, X } from "lucide-react";
+"use client";
 
-const TOOLS = [
-  { name: "list_directory",  color: "#F59E0B", label: "Listing structure"  },
-  { name: "search_file",     color: "#8B5CF6", label: "Searching patterns" },
-  { name: "read_file",       color: "#10B981", label: "Reading source"     },
-  { name: "grep_search",     color: "#3B82F6", label: "Grep references"    },
-  { name: "analyze_imports", color: "#F97316", label: "Mapping imports"    },
-];
+import { motion, AnimatePresence } from "motion/react";
+import { Activity, X, Radio } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { Card } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import type { ToolCall } from "@/lib/types";
+import { TOOL_META } from "../chat/tool-row";
 
 interface AgentActivityProps {
-  activeToolIdx: number;
-  setActiveToolIdx: (i: number) => void;
+  liveTools: ToolCall[];
   isMobile: boolean;
   onClose?: () => void;
 }
 
-export function AgentActivity({ activeToolIdx, setActiveToolIdx, isMobile, onClose }: AgentActivityProps) {
-  const activeTool = TOOLS[activeToolIdx];
+export function AgentActivity({ liveTools, isMobile, onClose }: AgentActivityProps) {
+  const hasActivity = liveTools.length > 0;
+  const latest = hasActivity ? liveTools[liveTools.length - 1] : null;
+  const latestMeta = latest ? (TOOL_META[latest.name] ?? { color: "#6B7280" }) : null;
+  const isRunning = latest?.args === "running...";
 
   return (
-    <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "transparent" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <Activity size={13} style={{ color: "var(--primary)" }} />
-          <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)", margin: 0 }}>Agent Activity</h2>
+    <div className="px-4 pt-4 pb-3.5 border-b border-border flex-shrink-0">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-[7px]">
+          <Activity size={13} className="text-primary" />
+          <h2 className="text-[13px] font-semibold text-foreground m-0">Agent Activity</h2>
         </div>
 
         {isMobile && onClose && (
-          <button
-            onClick={onClose}
-            style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted-foreground)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-          >
+          <Button variant="outline" size="icon" onClick={onClose} className="w-[30px] h-[30px]">
             <X size={14} />
-          </button>
+          </Button>
         )}
       </div>
 
-      <div style={{ borderRadius: 12, border: "1px solid var(--border)", padding: "11px 13px", background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
-          <div style={{ position: "relative", width: 9, height: 9, flexShrink: 0 }}>
-            <div style={{ width: 9, height: 9, borderRadius: "50%", background: activeTool.color }} />
-            <div style={{ width: 9, height: 9, borderRadius: "50%", background: activeTool.color, position: "absolute", inset: 0, opacity: 0.45 }} className="animate-ping" />
-          </div>
-          <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{activeTool.label}</span>
+      {!hasActivity ? (
+        <div className="rounded-xl border border-dashed border-border px-[13px] py-4 flex flex-col items-center gap-1.5 text-center">
+          <Radio size={16} className="text-muted-foreground opacity-50" />
+          <span className="text-[11px] text-muted-foreground leading-snug">
+            No activity yet — ask a question to see the agent work in real time.
+          </span>
         </div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, background: `${activeTool.color}1A`, border: `1px solid ${activeTool.color}40` }}>
-          <Zap size={10} style={{ color: activeTool.color }} />
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, color: activeTool.color }}>{activeTool.name}</span>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 1 }}>
-        {TOOLS.slice(0, activeToolIdx + 1).map((tool, i) => (
-          <motion.button
-            key={tool.name}
-            initial={{ opacity: 0, x: 5 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.04 }}
-            onClick={() => setActiveToolIdx(i)}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px", borderRadius: 7, border: "none", cursor: "pointer", background: "transparent", textAlign: "left", width: "100%", transition: "background 0.1s" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "var(--rb-hover-surface)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+      ) : (
+        <>
+          <Card
+            className="border-border px-[13px] py-[11px]"
+            style={{ background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
           >
-            <div style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: i === activeToolIdx ? tool.color : "var(--border)", boxShadow: i === activeToolIdx ? `0 0 7px ${tool.color}` : "none", transition: "all 0.2s" }} />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: i === activeToolIdx ? tool.color : "var(--muted-foreground)", fontWeight: i === activeToolIdx ? 600 : 400 }}>
-              {tool.name}
-            </span>
-            {i === activeToolIdx && <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--muted-foreground)" }}>active</span>}
-          </motion.button>
-        ))}
-      </div>
+            <div className="flex items-center gap-2 mb-[9px]">
+              <div className="relative w-[9px] h-[9px] flex-shrink-0">
+                <div className="w-[9px] h-[9px] rounded-full" style={{ background: latestMeta!.color }} />
+                {isRunning && (
+                  <div className="w-[9px] h-[9px] rounded-full absolute inset-0 opacity-45 animate-ping" style={{ background: latestMeta!.color }} />
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground">
+                {isRunning ? "Running…" : "Last completed"}
+              </span>
+            </div>
+            <Badge
+              variant="outline"
+              className="font-mono text-[11px] font-semibold border"
+              style={{ color: latestMeta!.color, background: `${latestMeta!.color}1A`, borderColor: `${latestMeta!.color}40` }}
+            >
+              {latest!.name}
+            </Badge>
+          </Card>
+
+          <div className="mt-2 flex flex-col gap-px">
+            <AnimatePresence initial={false}>
+              {liveTools.map((tool, i) => {
+                const meta = TOOL_META[tool.name] ?? { color: "#6B7280" };
+                const running = tool.args === "running...";
+                const isLast = i === liveTools.length - 1;
+                return (
+                  <motion.div
+                    key={`${tool.name}-${i}`}
+                    initial={{ opacity: 0, x: 6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="flex items-center gap-2 px-[7px] py-[5px] rounded-[7px]"
+                  >
+                    <div
+                      className="w-[7px] h-[7px] rounded-full flex-shrink-0 transition-all"
+                      style={{
+                        background: isLast ? meta.color : "var(--border)",
+                        boxShadow: isLast ? `0 0 7px ${meta.color}` : "none",
+                      }}
+                    />
+                    <span
+                      className="font-mono text-[11px]"
+                      style={{ color: isLast ? meta.color : "var(--muted-foreground)", fontWeight: isLast ? 600 : 400 }}
+                    >
+                      {tool.name}
+                    </span>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {running ? "running…" : "done"}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,33 +1,42 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTheme } from "next-themes";
 
 import { LeftSidebar } from "../components/left-sidebar";
 import { ChatArea } from "../components/chat-area";
 import { RightPanel } from "../components/right-panel";
-import { useWindowSize } from "@/lib/hooks/use-window-size";
-import { useRootContext } from "@/components/RootContext";
-
-interface RepoInfo {
-  owner: string;
-  name: string;
-  language: string;
-  stars: number;
-  description: string;
-}
+import { useWindowSize } from "@/shared/hooks/use-window-size";
+import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
 
 export function DashboardPage() {
-  
-  const { isDark, setIsDark } = useRootContext();
+
+  const { resolvedTheme, setTheme } = useTheme();
+  // resolvedTheme is undefined until next-themes has resolved on the client;
+  // default to dark (matches ThemeProvider's defaultTheme) until then.
+  const isDark = resolvedTheme ? resolvedTheme === "dark" : true;
+  const setIsDark = (v: boolean) => setTheme(v ? "dark" : "light");
+
   const { width } = useWindowSize();
 
   const isMobile  = width < 768;
   const isTablet  = width >= 768 && width < 1024;
   const isDesktop = width >= 1024;
 
-  const [connectedRepo, setConnectedRepo] = useState<RepoInfo | null>(null);
-  const [activeSession, setActiveSession] = useState<string>(() => crypto.randomUUID());
-  const [sidebarOpen,   setSidebarOpen]   = useState(false);
-  const [rightOpen,     setRightOpen]     = useState(false);
+  // Dashboard-wide state (connected repo, active session, live tool
+  // activity) now lives in Zustand — components read/write it directly
+  // instead of receiving it via props.
+  const activeSession    = useDashboardStore((s) => s.activeSession);
+  const setActiveSession = useDashboardStore((s) => s.setActiveSession);
+
+  useEffect(() => {
+    // Seed the first session id once we're on the client.
+    if (!activeSession) setActiveSession(crypto.randomUUID());
+  }, [activeSession, setActiveSession]);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rightOpen,   setRightOpen]   = useState(false);
 
   /* Close drawers when resizing to desktop */
   useEffect(() => {
@@ -86,8 +95,6 @@ export function DashboardPage() {
         {!isMobile && (
           <div style={{ width: sidebarWidth, minWidth: sidebarWidth, height: "100%", flexShrink: 0 }}>
             <LeftSidebar
-              connectedRepo={connectedRepo} onConnect={setConnectedRepo}
-              activeSession={activeSession}  setActiveSession={setActiveSession}
               isDark={isDark} setIsDark={setIsDark}
               isMobile={false} isTablet={isTablet}
             />
@@ -97,20 +104,18 @@ export function DashboardPage() {
         {/* Chat area */}
         <div style={{ flex: 1, height: "100%", overflow: "hidden", minWidth: 0 }}>
           <ChatArea
-            repo={connectedRepo}
             isMobile={isMobile} isTablet={isTablet}
             onOpenSidebar={() => setSidebarOpen(true)}
             onOpenRightPanel={() => setRightOpen(true)}
             showRightToggle={!isDesktop}
             isDark={isDark} setIsDark={setIsDark}
-            activeSession={activeSession}
           />
         </div>
 
         {/* Right panel — inline on desktop only */}
         {isDesktop && (
           <div style={{ width: rightWidth, minWidth: rightWidth, height: "100%", flexShrink: 0 }}>
-            <RightPanel repo={connectedRepo} isMobile={false} />
+            <RightPanel isMobile={false} />
           </div>
         )}
       </div>
@@ -125,8 +130,6 @@ export function DashboardPage() {
             style={{ position: "fixed", left: 0, top: 0, height: "100%", width: sidebarWidth, zIndex: 60 }}
           >
             <LeftSidebar
-              connectedRepo={connectedRepo} onConnect={setConnectedRepo}
-              activeSession={activeSession}  setActiveSession={setActiveSession}
               isDark={isDark} setIsDark={setIsDark}
               isMobile onClose={() => setSidebarOpen(false)}
             />
@@ -143,7 +146,7 @@ export function DashboardPage() {
             transition={{ type: "spring", damping: 28, stiffness: 260 }}
             style={{ position: "fixed", right: 0, top: 0, height: "100%", width: rightWidth, zIndex: 60 }}
           >
-            <RightPanel repo={connectedRepo} isMobile onClose={() => setRightOpen(false)} />
+            <RightPanel isMobile onClose={() => setRightOpen(false)} />
           </motion.div>
         )}
       </AnimatePresence>

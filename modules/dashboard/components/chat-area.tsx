@@ -1,24 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown } from "lucide-react";
-import type { Message, RepoInfo  } from "@/lib/types";
+import { toast } from "sonner";
+import type { Message } from "@/lib/types";
 import { ChatHeader } from "./chat/chat-header";
 import { MessageBubble } from "./chat/message-bubble";
 import { TypingIndicator } from "./chat/typing-indicator";
 import { ChatInput } from "./chat/chat-input";
 import { streamAgent } from "@/lib/api";
+import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
 
 let messageIdCounter = 0;
-/** Monotonically-unique id — Date.now() alone can collide when two
- * messages are created within the same millisecond (e.g. user bubble
- * immediately followed by the agent placeholder bubble). */
+
 function nextMessageId(): string {
   messageIdCounter += 1;
   return `${Date.now()}-${messageIdCounter}`;
 }
 
 interface ChatAreaProps {
-  repo: RepoInfo | null;
   isMobile?: boolean;
   isTablet?: boolean;
   onOpenSidebar?: () => void;
@@ -26,10 +25,14 @@ interface ChatAreaProps {
   showRightToggle?: boolean;
   isDark?: boolean;
   setIsDark?: (v: boolean) => void;
-  activeSession?: string;
 }
 
-export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSidebar, onOpenRightPanel, showRightToggle = false, isDark = false, setIsDark, activeSession }: ChatAreaProps) {
+export function ChatArea({ isMobile = false, isTablet = false, onOpenSidebar, onOpenRightPanel, showRightToggle = false, isDark = false, setIsDark }: ChatAreaProps) {
+  const repo            = useDashboardStore((s) => s.connectedRepo);
+  const activeSession    = useDashboardStore((s) => s.activeSession);
+  const pushToolStatus   = useDashboardStore((s) => s.pushToolStatus);
+  const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
+
   const [messages,      setMessages]      = useState<Message[]>([]);
   const [input,         setInput]         = useState("");
   const [isTyping,      setIsTyping]      = useState(false);
@@ -77,6 +80,10 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
     setMessages(prev => [...prev, { id: nextMessageId(), role: "user", content: text, timestamp: now }]);
     setIsTyping(true);
 
+    // Fresh turn — clear the right panel's activity log and the bubble's
+    // local tool tracker together so both views start from zero.
+    resetLiveTools();
+
     const agentMsgId = nextMessageId();
     setMessages(prev => [...prev, {
       id: agentMsgId,
@@ -95,9 +102,12 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
       setMessages(prev => prev.map(m => (m.id === agentMsgId ? { ...m, ...partial } : m)));
     };
 
-    const pushToolStatus = (name: string, status: "calling" | "done") => {
+    const pushLocalToolStatus = (name: string, status: "calling" | "done") => {
       activeTools.set(name, { name, args: status === "calling" ? "running..." : "done" });
       updateAgentMessage({ toolCalls: Array.from(activeTools.values()) });
+      // Mirror the same event into the shared store so the right-panel
+      // "Agent Activity" card reflects exactly what's happening live.
+      pushToolStatus(name, status);
     };
 
     try {
@@ -112,12 +122,12 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
       await streamAgent(repoUrl, text, threadId, repoId, {
         onToolCall: (toolName) => {
           // Model just decided to call this tool — show it as active.
-          pushToolStatus(toolName, "calling");
+          pushLocalToolStatus(toolName, "calling");
         },
         onToolResult: (toolName) => {
           // Tool finished — mark it done, but keep the row visible so the
           // user can see everything the agent looked at.
-          pushToolStatus(toolName, "done");
+          pushLocalToolStatus(toolName, "done");
         },
         onChunk: (chunk) => {
           // This is the final answer text — clear tool activity and show it.
@@ -128,22 +138,24 @@ export function ChatArea({ repo, isMobile = false, isTablet = false, onOpenSideb
           // Nothing more to do here — typing indicator stops in `finally`.
         },
         onError: (message) => {
-          updateAgentMessage({ content: `❌ **Agent Error:** ${message}`, toolCalls: undefined });
+          // Show the error as a toast instead of a permanent chat bubble,
+          // and drop the empty "thinking" placeholder message.
+          toast.error(message);
+          setMessages(prev => prev.filter(m => m.id !== agentMsgId));
         },
       });
 
       if (!receivedAnyChunk) {
         updateAgentMessage({ content: "The agent didn't return a response. Please try again.", toolCalls: undefined });
       }
-    } catch (err: any) {
-      updateAgentMessage({
-        content: `❌ **Backend Error:** ${err.message || "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000."}`,
-        toolCalls: undefined,
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000.";
+      toast.error(message);
+      setMessages(prev => prev.filter(m => m.id !== agentMsgId));
     } finally {
       setIsTyping(false);
     }
-  }, [isTyping, repo, activeSession]);
+  }, [isTyping, repo, activeSession, pushToolStatus, resetLiveTools]);
 
   async function handleSend() {
     if (!input.trim() || isTyping) return;

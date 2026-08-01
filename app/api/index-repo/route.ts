@@ -1,4 +1,4 @@
-import { indexingQueue } from "@/lib/queue";
+import { indexingQueue } from "@/modules/dashboard/queue/queue";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST (req: NextRequest) {

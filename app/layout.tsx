@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { RootContextProvider } from "@/components/RootContext";
-import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/shared/components/theme-provider";
+import { Toaster } from "@/shared/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,12 +14,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased dark" style={{ colorScheme: "dark" }}>
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <RootContextProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
           <Toaster richColors closeButton position="top-right" />
-        </RootContextProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

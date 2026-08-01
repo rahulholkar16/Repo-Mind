@@ -1,16 +1,19 @@
+"use client";
+
 import { useState } from "react";
 import { Plus, Sun, Moon, X } from "lucide-react";
 import { toast } from "sonner";
-import { RepoBrainMark } from "@/components/RepoBrainMark";
-import type { RepoInfo, Session  } from "@/lib/types";
+import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
+import { Button } from "@/shared/components/ui/button";
+import { Separator } from "@/shared/components/ui/separator";
+import type { RepoInfo } from "@/lib/types";
 import { RepoConnect } from "./sidebar/repo-connect";
 import { SessionHistory } from "./sidebar/session-history";
+import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
+import { getRepoInfo, indexRepository, getRepositoryTree } from "@/lib/api";
+import pollIndexJob from "@/modules/dashboard/utils/poll-index-job";
 
 interface LeftSidebarProps {
-  connectedRepo: RepoInfo | null;
-  onConnect: (repo: RepoInfo) => void;
-  activeSession: string;
-  setActiveSession: (id: string) => void;
   isDark: boolean;
   setIsDark: (v: boolean) => void;
   isMobile?: boolean;
@@ -18,15 +21,17 @@ interface LeftSidebarProps {
   onClose?: () => void;
 }
 
-import { getRepoInfo, indexRepository, getRepositoryTree } from "@/lib/api";
-import pollIndexJob from "@/lib/PollIndexJob";
+export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = false, onClose }: LeftSidebarProps) {
+  const connectedRepo    = useDashboardStore((s) => s.connectedRepo);
+  const setConnectedRepo = useDashboardStore((s) => s.setConnectedRepo);
+  const activeSession    = useDashboardStore((s) => s.activeSession);
+  const setActiveSession = useDashboardStore((s) => s.setActiveSession);
+  const sessions         = useDashboardStore((s) => s.sessions);
+  const addSession       = useDashboardStore((s) => s.addSession);
+  const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
 
-const INITIAL_SESSIONS: Session[] = [];
-
-export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActiveSession, isDark, setIsDark, isMobile = false, isTablet = false, onClose }: LeftSidebarProps) {
   const [urlInput,   setUrlInput]   = useState("");
   const [connecting, setConnecting] = useState(false);
-  const [sessions,   setSessions]   = useState<Session[]>(INITIAL_SESSIONS);
 
   async function handleConnect() {
     if (connecting || !urlInput.trim()) return;
@@ -91,15 +96,13 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
           repoData.indexedChunks = indexRes.total_chunks;
       }
 
-      onConnect(repoData);
+      setConnectedRepo(repoData);
       // Force a fresh conversation thread whenever a (new) repo is connected —
       // otherwise the agent keeps the old repo's messages/tool results in
       // context and answers about the wrong repository.
+      resetLiveTools();
       const newId = crypto.randomUUID();
-      setSessions(prev => [
-        { id: newId, repoName: `${owner}/${name}`, title: "New conversation", timestamp: "Now" },
-        ...prev,
-      ]);
+      addSession({ id: newId, repoName: `${owner}/${name}`, title: "New conversation", timestamp: "Now" });
       setActiveSession(newId);
     } catch (err: unknown) {
       const message =
@@ -113,48 +116,53 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
   }
 
   function handleNewChat() {
+    resetLiveTools();
     const newId = crypto.randomUUID();
-    setSessions(prev => [
-      { id: newId, repoName: connectedRepo ? `${connectedRepo.owner}/${connectedRepo.name}` : "No repo", title: "New conversation", timestamp: "Now" },
-      ...prev,
-    ]);
+    addSession({
+      id: newId,
+      repoName: connectedRepo ? `${connectedRepo.owner}/${connectedRepo.name}` : "No repo",
+      title: "New conversation",
+      timestamp: "Now",
+    });
     setActiveSession(newId);
     onClose?.();
   }
 
   return (
-    <div style={{
-      width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden",
-      background: "var(--rb-glass-bg-sidebar)",
-      backdropFilter: "var(--rb-glass-backdrop-sidebar)",
-      WebkitBackdropFilter: "var(--rb-glass-backdrop-sidebar)",
-      borderRight: isMobile ? "none" : "1px solid var(--rb-glass-border-sidebar)",
-      fontFamily: "'Inter', sans-serif",
-      boxShadow: isMobile ? "4px 0 32px rgba(0,0,0,0.4)" : "none",
-    }}>
-
-      <div style={{ padding: isMobile ? "16px 18px 14px" : "20px 20px 16px", borderBottom: "1px solid var(--border)", position: "relative", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
+    <div
+      className="w-full h-full flex flex-col overflow-hidden font-sans"
+      style={{
+        background: "var(--rb-glass-bg-sidebar)",
+        backdropFilter: "var(--rb-glass-backdrop-sidebar)",
+        WebkitBackdropFilter: "var(--rb-glass-backdrop-sidebar)",
+        borderRight: isMobile ? "none" : "1px solid var(--rb-glass-border-sidebar)",
+        boxShadow: isMobile ? "4px 0 32px rgba(0,0,0,0.4)" : "none",
+      }}
+    >
+      <div className={`relative flex-shrink-0 border-b border-border ${isMobile ? "px-[18px] pt-4 pb-3.5" : "px-5 pt-5 pb-4"}`}>
+        <div className="flex items-center gap-2.5">
+          <div className="flex-shrink-0 flex items-center">
             <RepoBrainMark size={34} isDark={isDark} />
           </div>
           <div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: isTablet ? 13 : 15, fontWeight: 600, color: "var(--primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>
+            <div className={`font-mono ${isTablet ? "text-[13px]" : "text-[15px]"} font-semibold text-primary tracking-tight leading-none`}>
               RepoBrain
             </div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--muted-foreground)", marginTop: 2 }}>
+            <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
               AI Repo Analysis
             </div>
           </div>
         </div>
 
         {isMobile && onClose && (
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={onClose}
-            style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted-foreground)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8"
           >
             <X size={15} />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -175,36 +183,25 @@ export function LeftSidebar({ connectedRepo, onConnect, activeSession, setActive
         isMobile={isMobile}
       />
 
-      <div style={{ padding: isMobile ? "12px 14px 24px" : "12px 14px 18px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-        <button
+      <div className={`flex-shrink-0 border-t border-border flex flex-col gap-2 px-3.5 ${isMobile ? "pt-3 pb-6" : "pt-3 pb-[18px]"}`}>
+        <Button
           onClick={handleNewChat}
-          style={{
-            width: "100%", padding: "11px 0", borderRadius: 999,
-            background: "var(--rb-cta-gradient)", color: "#fff",
-            border: "none", fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600,
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
-          onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+          className="w-full rounded-full text-white gap-1.5 hover:opacity-90 transition-opacity"
+          style={{ background: "var(--rb-cta-gradient)" }}
         >
           <Plus size={14} /> New Chat
-        </button>
+        </Button>
 
-        <button
+        <Separator />
+
+        <Button
+          variant="outline"
           onClick={() => setIsDark(!isDark)}
-          style={{
-            width: "100%", padding: "9px 0", borderRadius: 8,
-            background: "transparent", color: "var(--muted-foreground)",
-            border: "1px solid var(--border)", fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted-foreground)"; }}
+          className="w-full font-mono text-[11px] gap-1.5 hover:border-primary hover:text-primary"
         >
           {isDark ? <Sun size={12} /> : <Moon size={12} />}
           {isDark ? "Switch to Light" : "Switch to Dark"}
-        </button>
+        </Button>
       </div>
     </div>
   );

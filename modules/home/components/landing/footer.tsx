@@ -1,5 +1,5 @@
 import { getC, mono, sans } from "./landing-theme";
-import { RepoBrainMark } from "@/components/RepoBrainMark";
+import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
 
 const FOOTER_COLS = [
   { heading: "Product", links: ["Features", "How it works", "Changelog", "Roadmap"] },

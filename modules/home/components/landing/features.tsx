@@ -1,4 +1,5 @@
 import { Terminal, Lock, Layers, GitMerge, MessageSquare, BookOpen, Activity } from "lucide-react";
+import { Card } from "@/shared/components/ui/card";
 import { getC, mono, sans, Tag, FadeUp } from "./landing-theme";
 
 const TOOL_BADGES = [
@@ -38,7 +39,7 @@ export function Features({ isDark }: { isDark: boolean }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }} className="bento-grid">
 
         <FadeUp delay={0} className="bento-wide">
-          <div style={{ ...card({ padding: "32px" }), gridColumn: "span 2" }}
+          <Card style={{ ...card({ padding: "32px" }), gridColumn: "span 2" }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}>
             <div style={{ position: "absolute", top: -60, right: -60, width: 200, height: 200, borderRadius: "50%", background: `radial-gradient(circle, ${C.ORANGE}15, transparent 70%)`, pointerEvents: "none" }} />
@@ -54,11 +55,11 @@ export function Features({ isDark }: { isDark: boolean }) {
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
         </FadeUp>
 
         <FadeUp delay={0.06}>
-          <div style={card()}
+          <Card style={card()}
             onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.AMBER}18`, border: `1px solid ${C.AMBER}30`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
@@ -71,11 +72,11 @@ export function Features({ isDark }: { isDark: boolean }) {
               <div style={{ ...mono, fontSize: 11, color: "#10B981" }}>✓ github.com/acme/internal-api</div>
               <div style={{ ...mono, fontSize: 11, color: C.MUTED, opacity: 0.6 }}>✓ Token verified · Read-only</div>
             </div>
-          </div>
+          </Card>
         </FadeUp>
 
         <FadeUp delay={0.04}>
-          <div style={card()}
+          <Card style={card()}
             onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: "#8B5CF618", border: "1px solid #8B5CF630", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
@@ -91,11 +92,11 @@ export function Features({ isDark }: { isDark: boolean }) {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </FadeUp>
 
         <FadeUp delay={0.08}>
-          <div style={card()}
+          <Card style={card()}
             onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: "#10B98118", border: "1px solid #10B98130", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
@@ -103,11 +104,11 @@ export function Features({ isDark }: { isDark: boolean }) {
             </div>
             <h3 style={{ ...sans, fontSize: 19, fontWeight: 700, color: C.TEXT, margin: "0 0 10px", letterSpacing: "-0.02em" }}>Instant PR reviews</h3>
             <p style={{ ...sans, fontSize: 14, color: C.MUTED, lineHeight: 1.6, margin: 0 }}>Paste a PR URL and get a thorough review: logic errors, missing tests, security issues, and architectural feedback — in seconds.</p>
-          </div>
+          </Card>
         </FadeUp>
 
         <FadeUp delay={0.1} className="bento-wide">
-          <div style={{ ...card({ padding: "32px" }), display: "flex", gap: 28, alignItems: "flex-start" }} className="feature-card-inner"
+          <Card style={{ ...card({ padding: "32px" }), display: "flex", gap: 28, alignItems: "flex-start" }} className="feature-card-inner"
             onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}>
             <div style={{ flex: 1 }}>
@@ -128,11 +129,11 @@ export function Features({ isDark }: { isDark: boolean }) {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </FadeUp>
 
         <FadeUp delay={0.06}>
-          <div style={card()}
+          <Card style={card()}
             onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.ORANGE}18`, border: `1px solid ${C.ORANGE}30`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
@@ -140,7 +141,7 @@ export function Features({ isDark }: { isDark: boolean }) {
             </div>
             <h3 style={{ ...sans, fontSize: 19, fontWeight: 700, color: C.TEXT, margin: "0 0 10px", letterSpacing: "-0.02em" }}>Auto-generate docs</h3>
             <p style={{ ...sans, fontSize: 14, color: C.MUTED, lineHeight: 1.6, margin: 0 }}>Generate onboarding guides, architecture docs, and API references from real source code — always accurate, never stale.</p>
-          </div>
+          </Card>
         </FadeUp>
 
       </div>

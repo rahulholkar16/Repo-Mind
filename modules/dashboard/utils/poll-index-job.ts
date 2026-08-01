@@ -1,8 +1,8 @@
-import { IndexRepoResponse } from "./api";
+import type { IndexRepoResponse } from "@/lib/api";
 
-async function pollIndexJob (jobId: string): Promise<IndexRepoResponse> {
+async function pollIndexJob(jobId: string): Promise<IndexRepoResponse> {
     while (true) {
-        const res = await fetch (`/api/index-repo/status?jobId=${jobId}`);
+        const res = await fetch(`/api/index-repo/status?jobId=${jobId}`);
         if (!res.ok) throw new Error("Failed to check indexing status");
 
         const data = await res.json();

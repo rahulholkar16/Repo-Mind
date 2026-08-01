@@ -1,6 +1,9 @@
+"use client";
+
 import { motion } from "motion/react";
 import { Clock, MessageSquare, ChevronRight } from "lucide-react";
-import type { Session  } from "@/lib/types";
+import { ScrollArea } from "@/shared/components/ui/scroll-area";
+import type { Session } from "@/lib/types";
 
 interface SessionHistoryProps {
   sessions: Session[];
@@ -12,15 +15,15 @@ interface SessionHistoryProps {
 
 export function SessionHistory({ sessions, activeSession, setActiveSession, onClose, isMobile }: SessionHistoryProps) {
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "10px 8px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 6px", marginBottom: 6 }}>
-        <Clock size={11} style={{ color: "var(--muted-foreground)" }} />
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+    <ScrollArea className="flex-1 px-2 py-2.5">
+      <div className="flex items-center gap-1.5 px-1.5 mb-1.5">
+        <Clock size={11} className="text-muted-foreground" />
+        <span className="font-mono text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
           History
         </span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <div className="flex flex-col gap-px">
         {sessions.map((session, i) => {
           const active = activeSession === session.id;
           return (
@@ -30,31 +33,32 @@ export function SessionHistory({ sessions, activeSession, setActiveSession, onCl
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.04 + 0.1 }}
               onClick={() => { setActiveSession(session.id); onClose?.(); }}
+              className={`flex items-start gap-2 rounded-[10px] border-none cursor-pointer text-left w-full transition-all ${
+                isMobile ? "px-2.5 py-2.5" : "px-2.5 py-2"
+              } ${active ? "outline outline-1" : "outline outline-1 outline-transparent hover:bg-[var(--rb-hover-surface)]"}`}
               style={{
-                display: "flex", alignItems: "flex-start", gap: 8,
-                padding: isMobile ? "10px 10px" : "8px 10px",
-                borderRadius: 10, border: "none", cursor: "pointer",
                 background: active ? "var(--rb-session-active-bg)" : "transparent",
-                outline: active ? "1px solid var(--rb-session-active-border)" : "1px solid transparent",
-                textAlign: "left", width: "100%", transition: "all 0.15s",
+                outlineColor: active ? "var(--rb-session-active-border)" : "transparent",
               }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.background = "var(--rb-hover-surface)"; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
-              <MessageSquare size={12} style={{ color: active ? "var(--primary)" : "var(--muted-foreground)", marginTop: 1, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <MessageSquare
+                size={12}
+                className="mt-px flex-shrink-0"
+                style={{ color: active ? "var(--primary)" : "var(--muted-foreground)" }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-foreground truncate">
                   {session.title}
                 </div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--muted-foreground)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div className="font-mono text-[10px] text-muted-foreground mt-px truncate">
                   {session.repoName}
                 </div>
               </div>
-              <ChevronRight size={11} style={{ color: "var(--muted-foreground)", flexShrink: 0, opacity: active ? 1 : 0.4 }} />
+              <ChevronRight size={11} className="text-muted-foreground flex-shrink-0" style={{ opacity: active ? 1 : 0.4 }} />
             </motion.button>
           );
         })}
       </div>
-    </div>
+    </ScrollArea>
   );
 }

@@ -1,8 +1,11 @@
+"use client";
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Bug, GitPullRequest, Boxes, BookOpen, Zap, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import type { RepoInfo  } from "@/lib/types";
+import { Card } from "@/shared/components/ui/card";
+import type { RepoInfo } from "@/lib/types";
 
 const ACTIONS = [
   { id: "bugs", Icon: Bug,            label: "Find Bugs",       desc: "Static + logic review" },
@@ -36,13 +39,13 @@ export function QuickActions({ repo }: { repo: RepoInfo | null }) {
   }
 
   return (
-    <div style={{ flex: 1, padding: "12px 12px", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-        <Zap size={12} style={{ color: "var(--primary)" }} />
-        <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)", margin: 0 }}>Quick Actions</h2>
+    <div className="flex-1 px-3 py-3 overflow-y-auto">
+      <div className="flex items-center gap-[7px] mb-2.5">
+        <Zap size={12} className="text-primary" />
+        <h2 className="text-[13px] font-semibold text-foreground m-0">Quick Actions</h2>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <div className="grid grid-cols-2 gap-2">
         {ACTIONS.map((action, i) => (
           <motion.button
             key={action.id}
@@ -52,122 +55,115 @@ export function QuickActions({ repo }: { repo: RepoInfo | null }) {
             whileHover={{ y: -3, transition: { duration: 0.14 } }}
             whileTap={{ scale: 0.97 }}
             onClick={() => handleActionClick(action.id)}
-            style={{
-              display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 9,
-              padding: "12px 11px", borderRadius: 14, border: "1px solid var(--border)",
-              background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)",
-              cursor: "pointer", textAlign: "left",
-              transition: "box-shadow 0.18s, border-color 0.18s, background 0.18s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "var(--rb-hover-surface)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(0,0,0,0.2)"; e.currentTarget.style.borderColor = "var(--rb-primary-subtle-border)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = "var(--border)"; }}
+            className="flex flex-col items-start gap-[9px] p-[11px] rounded-[14px] border border-border cursor-pointer text-left transition-[box-shadow,border-color,background] hover:bg-[var(--rb-hover-surface)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.2)] hover:border-[var(--rb-primary-subtle-border)]"
+            style={{ background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
           >
-            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--rb-primary-subtle)", border: "1px solid var(--rb-primary-subtle-border)" }}>
-              <action.Icon size={13} style={{ color: "var(--primary)" }} />
+            <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center" style={{ background: "var(--rb-primary-subtle)", border: "1px solid var(--rb-primary-subtle-border)" }}>
+              <action.Icon size={13} className="text-primary" />
             </div>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--foreground)", margin: 0 }}>{action.label}</p>
-              <p style={{ fontSize: 10, color: "var(--muted-foreground)", margin: "2px 0 0", lineHeight: 1.35 }}>{action.desc}</p>
+              <p className="text-[11px] font-semibold text-foreground m-0">{action.label}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 mb-0 leading-snug">{action.desc}</p>
             </div>
           </motion.button>
         ))}
       </div>
 
       {repo && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-          {/* AI Tech Stack */}
+        <div className="flex flex-col gap-2.5 mt-2.5">
           {repo.techStack && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{ borderRadius: 14, border: "1px solid var(--border)", padding: "12px 13px", background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <Card
+                className="border-border px-[13px] py-3"
+                style={{ background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
+              >
+                <p className="font-mono text-[10px] font-semibold text-muted-foreground uppercase tracking-wider m-0 mb-[9px]">
+                  AI Tech Stack
+                </p>
+                {[
+                  { label: "Frontend", value: repo.techStack.frontend },
+                  { label: "Backend", value: repo.techStack.backend },
+                  { label: "Database", value: repo.techStack.database },
+                  { label: "ORM", value: repo.techStack.orm },
+                  { label: "Styling", value: repo.techStack.styling },
+                  { label: "Auth", value: repo.techStack.authentication },
+                  { label: "State Management", value: repo.techStack.state_management },
+                ]
+                  .filter(item => item.value)
+                  .map(stat => (
+                    <div key={stat.label} className="flex justify-between items-center mb-1.5">
+                      <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+                      <span className="font-mono text-[11px] font-semibold text-primary">{stat.value}</span>
+                    </div>
+                  ))}
+              </Card>
+            </motion.div>
+          )}
+
+          {repo.architecture && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <Card
+                className="border-border overflow-hidden"
+                style={{ background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
+              >
+                <button
+                  onClick={() => setArchOpen(!archOpen)}
+                  className="flex items-center justify-between w-full px-[13px] py-3 border-none cursor-pointer bg-transparent text-left"
+                >
+                  <span className="font-mono text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    AI Architecture
+                  </span>
+                  <motion.div animate={{ rotate: archOpen ? 90 : 0 }}>
+                    <ChevronRight size={12} className="text-muted-foreground" />
+                  </motion.div>
+                </button>
+                <AnimatePresence>
+                  {archOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="px-[13px] pb-3 text-[11px] text-muted-foreground leading-snug"
+                    >
+                      <div className="font-semibold text-foreground mb-1">Overview</div>
+                      <p className="m-0 mb-2">{repo.architecture.project_overview}</p>
+                      {repo.architecture.modules && repo.architecture.modules.length > 0 && (
+                        <>
+                          <div className="font-semibold text-foreground mb-1">Modules</div>
+                          <ul className="m-0 mb-2 pl-4">
+                            {repo.architecture.modules.map((m, idx) => <li key={idx}>{m}</li>)}
+                          </ul>
+                        </>
+                      )}
+                      <div className="font-semibold text-foreground mb-1">Data Flow</div>
+                      <p className="m-0">{repo.architecture.data_flow}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </motion.div>
+          )}
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <Card
+              className="border-border px-[13px] py-3"
+              style={{ background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
             >
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 9px" }}>
-                AI Tech Stack
+              <p className="font-mono text-[10px] font-semibold text-muted-foreground uppercase tracking-wider m-0 mb-[9px]">
+                Session Stats
               </p>
               {[
-                { label: "Frontend", value: repo.techStack.frontend },
-                { label: "Backend", value: repo.techStack.backend },
-                { label: "Database", value: repo.techStack.database },
-                { label: "ORM", value: repo.techStack.orm },
-                { label: "Styling", value: repo.techStack.styling },
-                { label: "Auth", value: repo.techStack.authentication },
-                { label: "State Management", value: repo.techStack.state_management },
-              ]
-                .filter(item => item.value)
-                .map(stat => (
-                  <div key={stat.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{stat.label}</span>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, color: "var(--primary)" }}>{stat.value}</span>
-                  </div>
-                ))}
-            </motion.div>
-          )}
-
-          {/* AI Architecture Overview */}
-          {repo.architecture && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)", overflow: "hidden" }}
-            >
-              <button
-                onClick={() => setArchOpen(!archOpen)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 13px", border: "none", cursor: "pointer", background: "transparent", textAlign: "left" }}
-              >
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  AI Architecture
-                </span>
-                <motion.div animate={{ rotate: archOpen ? 90 : 0 }}>
-                  <ChevronRight size={12} style={{ color: "var(--muted-foreground)" }} />
-                </motion.div>
-              </button>
-              <AnimatePresence>
-                {archOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    style={{ padding: "0 13px 12px 13px", fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.4 }}
-                  >
-                    <div style={{ fontWeight: 600, color: "var(--foreground)", marginBottom: 4 }}>Overview</div>
-                    <p style={{ margin: "0 0 8px 0" }}>{repo.architecture.project_overview}</p>
-                    {repo.architecture.modules && repo.architecture.modules.length > 0 && (
-                      <>
-                        <div style={{ fontWeight: 600, color: "var(--foreground)", marginBottom: 4 }}>Modules</div>
-                        <ul style={{ margin: "0 0 8px 0", paddingLeft: 16 }}>
-                          {repo.architecture.modules.map((m, idx) => <li key={idx}>{m}</li>)}
-                        </ul>
-                      </>
-                    )}
-                    <div style={{ fontWeight: 600, color: "var(--foreground)", marginBottom: 4 }}>Data Flow</div>
-                    <p style={{ margin: 0 }}>{repo.architecture.data_flow}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
-          {/* Session Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ borderRadius: 14, border: "1px solid var(--border)", padding: "12px 13px", background: "var(--card)", backdropFilter: "var(--rb-glass-backdrop)", WebkitBackdropFilter: "var(--rb-glass-backdrop)" }}
-          >
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 9px" }}>
-              Session Stats
-            </p>
-            {[
-              { label: "Indexed Chunks", value: repo.indexedChunks ? String(repo.indexedChunks) : "142" },
-              { label: "Files analyzed", value: repo.indexedChunks ? String(Math.round(repo.indexedChunks / 2.5)) : "42" },
-              { label: "Tool calls",     value: "18"    },
-              { label: "Tokens used",    value: "~48k"  },
-            ].map(stat => (
-              <div key={stat.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{stat.label}</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600, color: "var(--primary)" }}>{stat.value}</span>
-              </div>
-            ))}
+                { label: "Indexed Chunks", value: repo.indexedChunks ? String(repo.indexedChunks) : "142" },
+                { label: "Files analyzed", value: repo.indexedChunks ? String(Math.round(repo.indexedChunks / 2.5)) : "42" },
+                { label: "Tool calls",     value: "18"    },
+                { label: "Tokens used",    value: "~48k"  },
+              ].map(stat => (
+                <div key={stat.label} className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+                  <span className="font-mono text-[11px] font-semibold text-primary">{stat.value}</span>
+                </div>
+              ))}
+            </Card>
           </motion.div>
         </div>
       )}

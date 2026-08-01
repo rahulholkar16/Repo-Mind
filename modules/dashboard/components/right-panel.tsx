@@ -1,17 +1,16 @@
-import { useState } from "react";
-import type { RepoInfo  } from "@/lib/types";
 import { AgentActivity } from "./panel/agent-activity";
 import { FileTree } from "./panel/file-tree";
 import { QuickActions } from "./panel/quick-actions";
+import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
 
 interface RightPanelProps {
-  repo: RepoInfo | null;
   isMobile?: boolean;
   onClose?: () => void;
 }
 
-export function RightPanel({ repo, isMobile = false, onClose }: RightPanelProps) {
-  const [activeToolIdx, setActiveToolIdx] = useState(2);
+export function RightPanel({ isMobile = false, onClose }: RightPanelProps) {
+  const repo      = useDashboardStore((s) => s.connectedRepo);
+  const liveTools = useDashboardStore((s) => s.liveTools);
 
   return (
     <div style={{
@@ -24,8 +23,7 @@ export function RightPanel({ repo, isMobile = false, onClose }: RightPanelProps)
       boxShadow: isMobile ? "-4px 0 32px rgba(0,0,0,0.4)" : "none",
     }}>
       <AgentActivity
-        activeToolIdx={activeToolIdx}
-        setActiveToolIdx={setActiveToolIdx}
+        liveTools={liveTools}
         isMobile={isMobile}
         onClose={onClose}
       />

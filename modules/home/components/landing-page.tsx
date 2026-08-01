@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { getC } from "./landing/landing-theme";
 import { Nav } from "./landing/nav";
 import { Hero } from "./landing/hero";
@@ -17,10 +16,6 @@ interface Props {
 
 export function LandingPage({ onEnterApp, isDark, setIsDark }: Props) {
   const C = getC(isDark);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-  }, [isDark]);
 
   return (
     <div style={{ background: C.BG, color: C.TEXT, fontFamily: "'Inter', sans-serif", overflowX: "hidden", transition: "background 0.3s, color 0.3s" }}>

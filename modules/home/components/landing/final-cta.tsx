@@ -1,4 +1,5 @@
 import { Zap, ArrowRight } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 import { getC, mono, sans, Tag, FadeUp } from "./landing-theme";
 
 export function FinalCTA({ onEnterApp, isDark }: { onEnterApp: () => void; isDark: boolean }) {
@@ -16,16 +17,23 @@ export function FinalCTA({ onEnterApp, isDark }: { onEnterApp: () => void; isDar
             Join 12,400+ engineers who use RepoBrain to navigate unfamiliar code, catch bugs early, and onboard in days instead of months.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={onEnterApp}
-              style={{ ...sans, padding: "16px 36px", borderRadius: 12, border: "none", background: C.ORANGE, color: "#fff", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 12px 40px ${C.ORANGE}38`, transition: "transform 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)")}
-              onMouseLeave={e => (e.currentTarget.style.transform = "none")}
-            >Start for free <ArrowRight size={16} /></button>
-            <button onClick={onEnterApp}
-              style={{ ...sans, padding: "16px 30px", borderRadius: 12, border: `1px solid ${C.BORDER}`, background: "transparent", color: C.TEXT, fontSize: 16, fontWeight: 500, cursor: "pointer", transition: "border-color 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = isDark ? "#555" : "#999")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}
-            >Book a demo</button>
+            <Button
+              onClick={onEnterApp}
+              size="lg"
+              className="gap-2 rounded-xl text-base font-bold px-9 py-4 h-auto hover:-translate-y-0.5 transition-transform"
+              style={{ background: C.ORANGE, color: "#fff", boxShadow: `0 12px 40px ${C.ORANGE}38` }}
+            >
+              Start for free <ArrowRight size={16} />
+            </Button>
+            <Button
+              onClick={onEnterApp}
+              variant="outline"
+              size="lg"
+              className="rounded-xl text-base font-medium px-[30px] py-4 h-auto"
+              style={{ borderColor: C.BORDER, color: C.TEXT, background: "transparent" }}
+            >
+              Book a demo
+            </Button>
           </div>
           <p style={{ ...mono, fontSize: 12, color: C.MUTED, marginTop: 20, opacity: 0.7 }}>No credit card required · Cancel anytime · SOC 2 Type II</p>
         </FadeUp>

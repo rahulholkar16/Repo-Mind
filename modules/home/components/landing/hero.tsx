@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { GitBranch, Zap, ArrowRight, Terminal } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 import { getC, mono, sans, Tag } from "./landing-theme";
 
 const DEMO_MESSAGES = [
@@ -125,16 +126,23 @@ export function Hero({ onEnterApp, isDark }: { onEnterApp: () => void; isDark: b
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
             style={{ display: "flex", gap: 12, marginTop: 36, flexWrap: "wrap" }}>
-            <button onClick={onEnterApp}
-              style={{ ...sans, padding: "14px 28px", borderRadius: 10, border: "none", background: C.ORANGE, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 8px 32px ${C.ORANGE}38`, transition: "transform 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)")}
-              onMouseLeave={e => (e.currentTarget.style.transform = "none")}
-            >Start for free <ArrowRight size={16} /></button>
-            <button onClick={onEnterApp}
-              style={{ ...sans, padding: "14px 24px", borderRadius: 10, border: `1px solid ${C.BORDER}`, background: "transparent", color: C.TEXT, fontSize: 15, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "border-color 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = isDark ? "#555" : "#999")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = C.BORDER)}
-            ><span>▶</span> Live demo</button>
+            <Button
+              onClick={onEnterApp}
+              size="lg"
+              className="gap-2 rounded-[10px] text-[15px] font-bold px-7 py-3.5 h-auto hover:-translate-y-0.5 transition-transform"
+              style={{ background: C.ORANGE, color: "#fff", boxShadow: `0 8px 32px ${C.ORANGE}38` }}
+            >
+              Start for free <ArrowRight size={16} />
+            </Button>
+            <Button
+              onClick={onEnterApp}
+              variant="outline"
+              size="lg"
+              className="gap-2 rounded-[10px] text-[15px] font-medium px-6 py-3.5 h-auto"
+              style={{ borderColor: C.BORDER, color: C.TEXT, background: "transparent" }}
+            >
+              <span>▶</span> Live demo
+            </Button>
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.5 }}

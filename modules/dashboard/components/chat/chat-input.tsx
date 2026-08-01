@@ -1,5 +1,8 @@
+"use client";
+
 import { useRef } from "react";
 import { Send, Paperclip } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 
 interface ChatInputProps {
   input: string;
@@ -26,11 +29,14 @@ export function ChatInput({ input, isTyping, isMobile, onChange, onSend }: ChatI
   }
 
   return (
-    <div style={{ padding: isMobile ? "10px 12px 16px" : "10px 18px 16px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+    <div className={`border-t border-border flex-shrink-0 ${isMobile ? "px-3 pt-2.5 pb-4" : "px-[18px] pt-2.5 pb-4"}`}>
       <div
-        style={{ borderRadius: 14, border: "1px solid var(--border)", background: "var(--rb-input-area-bg)", backdropFilter: "var(--rb-glass-backdrop-input)", WebkitBackdropFilter: "var(--rb-glass-backdrop-input)", overflow: "hidden", transition: "border-color 0.2s, box-shadow 0.2s" }}
-        onFocusCapture={e => { e.currentTarget.style.borderColor = "rgba(255,107,53,0.5)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255,107,53,0.08), 0 8px 32px rgba(0,0,0,0.3)"; }}
-        onBlurCapture={e  => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}
+        className="rounded-[14px] border border-border overflow-hidden transition-[border-color,box-shadow] duration-200 focus-within:shadow-[0_0_0_3px_rgba(255,107,53,0.08),0_8px_32px_rgba(0,0,0,0.3)] focus-within:border-[rgba(255,107,53,0.5)]"
+        style={{
+          background: "var(--rb-input-area-bg)",
+          backdropFilter: "var(--rb-glass-backdrop-input)",
+          WebkitBackdropFilter: "var(--rb-glass-backdrop-input)",
+        }}
       >
         <textarea
           ref={textareaRef}
@@ -39,40 +45,29 @@ export function ChatInput({ input, isTyping, isMobile, onChange, onSend }: ChatI
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           placeholder="Ask anything about this repository…"
           rows={1}
-          style={{
-            width: "100%", boxSizing: "border-box",
-            padding: isMobile ? "12px 12px 4px" : "13px 14px 4px",
-            background: "transparent", color: "var(--foreground)",
-            fontFamily: "'Inter', sans-serif", fontSize: isMobile ? 15 : 14,
-            border: "none", outline: "none", resize: "none",
-            minHeight: 44, maxHeight: isMobile ? 100 : 120,
-            WebkitAppearance: "none",
-          }}
+          className={`w-full box-border bg-transparent text-foreground font-sans border-none outline-none resize-none ${
+            isMobile ? "text-[15px] px-3 pt-3 pb-1" : "text-sm px-3.5 pt-[13px] pb-1"
+          }`}
+          style={{ minHeight: 44, maxHeight: isMobile ? 100 : 120, WebkitAppearance: "none" }}
         />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "4px 8px 10px" : "4px 10px 10px" }}>
-          <button style={{ padding: 8, borderRadius: 8, border: "none", background: "transparent", color: "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+        <div className={`flex items-center justify-between ${isMobile ? "px-2 pt-1 pb-2.5" : "px-2.5 pt-1 pb-2.5"}`}>
+          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
             <Paperclip size={isMobile ? 17 : 15} />
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10 }}>
+          </Button>
+          <div className={`flex items-center ${isMobile ? "gap-2" : "gap-2.5"}`}>
             {!isMobile && (
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--muted-foreground)" }}>
+              <span className="font-mono text-[10px] text-muted-foreground">
                 ↵ send · ⇧↵ newline
               </span>
             )}
-            <button
+            <Button
+              size="icon"
               onClick={handleSend}
               disabled={!input.trim() || isTyping}
-              style={{
-                width: isMobile ? 36 : 32, height: isMobile ? 36 : 32,
-                borderRadius: 9, border: "none",
-                background: (!input.trim() || isTyping) ? "var(--muted)" : "var(--primary)",
-                color: "#fff", cursor: (!input.trim() || isTyping) ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.15s", flexShrink: 0,
-              }}
+              className={isMobile ? "w-9 h-9" : "w-8 h-8"}
             >
               <Send size={isMobile ? 15 : 13} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

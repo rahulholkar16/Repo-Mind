@@ -1,6 +1,5 @@
 import { db } from "./prisma";
 import type { SessionSummary, SessionMessage } from "@/types";
-export type { SessionSummary, SessionMessage } from "@/types";
 
 export async function listSessionsForUser(userId: string): Promise<SessionSummary[]> {
   const sessions = await db.chatSession.findMany({

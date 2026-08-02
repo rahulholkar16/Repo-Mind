@@ -1,6 +1,5 @@
 import { indexRepository } from "@/lib/api";
 import type { IndexRepoResponse, IndexingJobData } from "@/types";
-export type { IndexingJobData } from "@/types";
 
 export const processIndexing = async (
     data: IndexingJobData,

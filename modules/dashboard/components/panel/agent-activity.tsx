@@ -5,14 +5,8 @@ import { Activity, X, Radio } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import type { ToolCall } from "@/lib/types";
+import type { AgentActivityProps } from "@/types";
 import { TOOL_META } from "../chat/tool-row";
-
-interface AgentActivityProps {
-  liveTools: ToolCall[];
-  isMobile: boolean;
-  onClose?: () => void;
-}
 
 export function AgentActivity({ liveTools, isMobile, onClose }: AgentActivityProps) {
   const hasActivity = liveTools.length > 0;

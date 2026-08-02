@@ -1,9 +1,6 @@
 import { indexRepository } from "@/lib/api";
-import type { IndexRepoResponse } from "@/lib/api";
-
-export interface IndexingJobData {
-    repo_url: string;
-}
+import type { IndexRepoResponse, IndexingJobData } from "@/types";
+export type { IndexingJobData } from "@/types";
 
 export const processIndexing = async (
     data: IndexingJobData,

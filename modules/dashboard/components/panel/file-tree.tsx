@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronRight, Folder, FolderOpen, FileCode2 } from "lucide-react";
-
-export interface FileNode { name: string; type: "dir" | "file"; ext?: string; children?: FileNode[]; }
+import type { FileNode } from "@/types";
 
 const EXT_COLORS: Record<string, string> = {
   ts: "#3178c6", tsx: "#61dafb", js: "#f1e05a", json: "#ffe066", py: "#3572A5", md: "#083fa1", yml: "#cb171e", yaml: "#cb171e"

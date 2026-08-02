@@ -3,17 +3,7 @@
 import { Menu, Activity, Sun, Moon } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
-import type { RepoInfo } from "@/lib/types";
-
-interface ChatHeaderProps {
-  repo: RepoInfo | null;
-  isMobile: boolean;
-  onOpenSidebar?: () => void;
-  onOpenRightPanel?: () => void;
-  showRightToggle: boolean;
-  isDark: boolean;
-  setIsDark?: (v: boolean) => void;
-}
+import type { ChatHeaderProps } from "@/types";
 
 export function ChatHeader({ repo, isMobile, onOpenSidebar, onOpenRightPanel, showRightToggle, isDark, setIsDark }: ChatHeaderProps) {
   return (

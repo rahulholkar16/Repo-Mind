@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card } from "@/shared/components/ui/card";
-import type { RepoInfo } from "@/lib/types";
+import type { RepoConnectProps } from "@/types";
 
 const LANG_COLORS: Record<string, string> = {
   TypeScript: "#3178c6", JavaScript: "#f1e05a",
@@ -14,15 +14,6 @@ const LANG_COLORS: Record<string, string> = {
 };
 
 function fmt(n: number) { return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n); }
-
-interface RepoConnectProps {
-  urlInput: string;
-  setUrlInput: (v: string) => void;
-  connecting: boolean;
-  onConnect: () => void;
-  connectedRepo: RepoInfo | null;
-  isTablet: boolean;
-}
 
 export function RepoConnect({ urlInput, setUrlInput, connecting, onConnect, connectedRepo, isTablet }: RepoConnectProps) {
   return (

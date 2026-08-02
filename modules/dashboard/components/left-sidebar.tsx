@@ -1,37 +1,41 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Sun, Moon, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Sun, Moon, X, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import type { RepoInfo } from "@/lib/types";
+import type { RepoInfo, LeftSidebarProps } from "@/types";
 import { RepoConnect } from "./sidebar/repo-connect";
 import { SessionHistory } from "./sidebar/session-history";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
-import { getRepoInfo, indexRepository, getRepositoryTree } from "@/lib/api";
+import { getRepoInfo, indexRepository, getRepositoryTree, getSessions, connectRepoRecord, createNewSession } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
 import pollIndexJob from "@/modules/dashboard/utils/poll-index-job";
 
-interface LeftSidebarProps {
-  isDark: boolean;
-  setIsDark: (v: boolean) => void;
-  isMobile?: boolean;
-  isTablet?: boolean;
-  onClose?: () => void;
-}
-
 export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = false, onClose }: LeftSidebarProps) {
+  const router = useRouter();
   const connectedRepo    = useDashboardStore((s) => s.connectedRepo);
   const setConnectedRepo = useDashboardStore((s) => s.setConnectedRepo);
   const activeSession    = useDashboardStore((s) => s.activeSession);
   const setActiveSession = useDashboardStore((s) => s.setActiveSession);
   const sessions         = useDashboardStore((s) => s.sessions);
   const addSession       = useDashboardStore((s) => s.addSession);
+  const setSessions      = useDashboardStore((s) => s.setSessions);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
 
   const [urlInput,   setUrlInput]   = useState("");
   const [connecting, setConnecting] = useState(false);
+
+  // Hydrate session history from Postgres (via Prisma) on load, so past
+  // conversations are still there after a refresh.
+  useEffect(() => {
+    getSessions()
+      .then(setSessions)
+      .catch((e) => console.warn("Could not load session history:", e));
+  }, [setSessions]);
 
   async function handleConnect() {
     if (connecting || !urlInput.trim()) return;
@@ -96,14 +100,27 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
           repoData.indexedChunks = indexRes.total_chunks;
       }
 
+      // 4. Persist the repo + its first chat session to Postgres (Prisma),
+      //    scoped to the logged-in user, and use the server-issued
+      //    threadId — this is the same id ai-services will save messages
+      //    under, so history round-trips correctly.
+      const { repo, session } = await connectRepoRecord({
+        repoUrl,
+        owner,
+        name,
+        language: repoData.language,
+        stars: repoData.stars,
+        description: repoData.description,
+      });
+      repoData.id = repo.id;
+
       setConnectedRepo(repoData);
       // Force a fresh conversation thread whenever a (new) repo is connected —
       // otherwise the agent keeps the old repo's messages/tool results in
       // context and answers about the wrong repository.
       resetLiveTools();
-      const newId = crypto.randomUUID();
-      addSession({ id: newId, repoName: `${owner}/${name}`, title: "New conversation", timestamp: "Now" });
-      setActiveSession(newId);
+      addSession({ id: session.threadId, repoName: `${owner}/${name}`, title: session.title, timestamp: "Now" });
+      setActiveSession(session.threadId);
     } catch (err: unknown) {
       const message =
         err instanceof Error && err.message
@@ -115,17 +132,33 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
     }
   }
 
-  function handleNewChat() {
+  async function handleNewChat() {
+    if (!connectedRepo?.id) {
+      toast.error("Connect a repository first.");
+      return;
+    }
     resetLiveTools();
-    const newId = crypto.randomUUID();
-    addSession({
-      id: newId,
-      repoName: connectedRepo ? `${connectedRepo.owner}/${connectedRepo.name}` : "No repo",
-      title: "New conversation",
-      timestamp: "Now",
-    });
-    setActiveSession(newId);
-    onClose?.();
+    try {
+      const { session } = await createNewSession(connectedRepo.id);
+      addSession({
+        id: session.threadId,
+        repoName: `${connectedRepo.owner}/${connectedRepo.name}`,
+        title: session.title,
+        timestamp: "Now",
+      });
+      setActiveSession(session.threadId);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to start a new chat.";
+      toast.error(message);
+    } finally {
+      onClose?.();
+    }
+  }
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    router.push("/login");
+    router.refresh();
   }
 
   return (
@@ -166,22 +199,24 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
         )}
       </div>
 
-      <RepoConnect
-        urlInput={urlInput}
-        setUrlInput={setUrlInput}
-        connecting={connecting}
-        onConnect={handleConnect}
-        connectedRepo={connectedRepo}
-        isTablet={isTablet}
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <RepoConnect
+          urlInput={urlInput}
+          setUrlInput={setUrlInput}
+          connecting={connecting}
+          onConnect={handleConnect}
+          connectedRepo={connectedRepo}
+          isTablet={isTablet}
+        />
 
-      <SessionHistory
-        sessions={connectedRepo ? sessions.filter(s => s.repoName === `${connectedRepo.owner}/${connectedRepo.name}`) : []}
-        activeSession={activeSession}
-        setActiveSession={setActiveSession}
-        onClose={onClose}
-        isMobile={isMobile}
-      />
+        <SessionHistory
+          sessions={connectedRepo ? sessions.filter(s => s.repoName === `${connectedRepo.owner}/${connectedRepo.name}`) : []}
+          activeSession={activeSession}
+          setActiveSession={setActiveSession}
+          onClose={onClose}
+          isMobile={isMobile}
+        />
+      </div>
 
       <div className={`flex-shrink-0 border-t border-border flex flex-col gap-2 px-3.5 ${isMobile ? "pt-3 pb-6" : "pt-3 pb-[18px]"}`}>
         <Button
@@ -201,6 +236,14 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
         >
           {isDark ? <Sun size={12} /> : <Moon size={12} />}
           {isDark ? "Switch to Light" : "Switch to Dark"}
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={handleSignOut}
+          className="w-full font-mono text-[11px] gap-1.5 hover:border-destructive hover:text-destructive"
+        >
+          <LogOut size={12} /> Sign Out
         </Button>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Bug, GitPullRequest, Boxes, BookOpen, Zap, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/shared/components/ui/card";
-import type { RepoInfo } from "@/lib/types";
+import type { RepoInfo } from "@/types";
 
 const ACTIONS = [
   { id: "bugs", Icon: Bug,            label: "Find Bugs",       desc: "Static + logic review" },

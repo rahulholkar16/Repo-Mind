@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Sun, Moon, Menu, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { getC, mono, sans, type LandingProps } from "./landing-theme";
+import { getC, mono, sans } from "./landing-theme";
+import type { LandingProps } from "@/types";
 import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
 
 export function Nav({ onEnterApp, isDark, setIsDark }: LandingProps) {

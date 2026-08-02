@@ -3,7 +3,8 @@ import "dotenv/config";
 import { Worker } from "bullmq";
 import { redis } from "@/lib/redis";
 import { INDEXING_QUEUE_NAME } from "../constant";
-import { processIndexing, type IndexingJobData } from "../services/indexing.service";
+import { processIndexing } from "../services/indexing.service";
+import type { IndexingJobData } from "@/types";
 
 const worker = new Worker<IndexingJobData>(
     INDEXING_QUEUE_NAME,

@@ -1,9 +1,6 @@
 import React from "react";
 import { CodeBlock } from "./code-block";
-
-interface MarkdownRendererProps {
-  content: string;
-}
+import type { MarkdownRendererProps } from "@/types";
 
 function parseInline(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];

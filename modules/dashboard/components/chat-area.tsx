@@ -2,12 +2,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import type { Message } from "@/lib/types";
+import type { Message, ChatAreaProps } from "@/types";
 import { ChatHeader } from "./chat/chat-header";
 import { MessageBubble } from "./chat/message-bubble";
 import { TypingIndicator } from "./chat/typing-indicator";
 import { ChatInput } from "./chat/chat-input";
-import { streamAgent } from "@/lib/api";
+import { streamAgent, getSessionMessages, getSessions } from "@/lib/api";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
 
 let messageIdCounter = 0;
@@ -17,19 +17,10 @@ function nextMessageId(): string {
   return `${Date.now()}-${messageIdCounter}`;
 }
 
-interface ChatAreaProps {
-  isMobile?: boolean;
-  isTablet?: boolean;
-  onOpenSidebar?: () => void;
-  onOpenRightPanel?: () => void;
-  showRightToggle?: boolean;
-  isDark?: boolean;
-  setIsDark?: (v: boolean) => void;
-}
-
-export function ChatArea({ isMobile = false, isTablet = false, onOpenSidebar, onOpenRightPanel, showRightToggle = false, isDark = false, setIsDark }: ChatAreaProps) {
+export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, showRightToggle = false, isDark = false, setIsDark }: ChatAreaProps) {
   const repo            = useDashboardStore((s) => s.connectedRepo);
   const activeSession    = useDashboardStore((s) => s.activeSession);
+  const setSessions      = useDashboardStore((s) => s.setSessions);
   const pushToolStatus   = useDashboardStore((s) => s.pushToolStatus);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
 
@@ -38,30 +29,60 @@ export function ChatArea({ isMobile = false, isTablet = false, onOpenSidebar, on
   const [isTyping,      setIsTyping]      = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const conversationKey = `${repo ? `${repo.owner}/${repo.name}` : "none"}::${activeSession ?? ""}`;
   const [renderedKey, setRenderedKey] = useState(conversationKey);
 
-  
+  function welcomeMessages(): Message[] {
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return repo
+      ? [{
+          id: "welcome",
+          role: "agent",
+          timestamp: now,
+          content: `Connected to **${repo.owner}/${repo.name}** — **${repo.language}** codebase. Ask me anything about this repository and I'll analyze it in real time.`,
+        }]
+      : [{
+          id: "welcome-default",
+          role: "agent",
+          timestamp: now,
+          content: "Welcome to **RepoBrain**! Please connect a GitHub repository in the sidebar to start the analysis.",
+        }];
+  }
+
   if (conversationKey !== renderedKey) {
     setRenderedKey(conversationKey);
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setMessages(
-      repo
-        ? [{
-            id: "welcome",
-            role: "agent",
-            timestamp: now,
-            content: `Connected to **${repo.owner}/${repo.name}** — **${repo.language}** codebase. Ask me anything about this repository and I'll analyze it in real time.`,
-          }]
-        : [{
-            id: "welcome-default",
-            role: "agent",
-            timestamp: now,
-            content: "Welcome to **RepoBrain**! Please connect a GitHub repository in the sidebar to start the analysis.",
-          }]
-    );
+    // Show the welcome bubble immediately, then swap in the real history
+    // (if this thread has any) once it loads from the checkpoint DB.
+    setMessages(welcomeMessages());
   }
+
+  // Load this session's saved history whenever we switch to a thread that
+  // has one. Keyed on conversationKey so a fast switch back and forth
+  // can't let a stale response overwrite a newer one.
+  useEffect(() => {
+    if (!activeSession) return;
+    let cancelled = false;
+
+    getSessionMessages(activeSession)
+      .then((history) => {
+        if (cancelled || history.length === 0) return;
+        const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        setMessages(
+          history.map((m, i) => ({
+            id: m.id ?? `history-${i}`,
+            role: m.role,
+            content: m.content,
+            timestamp: now,
+          }))
+        );
+      })
+      .catch((e) => console.warn("Could not load session history:", e));
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationKey]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -97,6 +118,9 @@ export function ChatArea({ isMobile = false, isTablet = false, onOpenSidebar, on
     // Live-updated list of tool activity (call -> result) shown in the
     // bubble's tool-row area while the agent is working.
     const activeTools = new Map<string, { name: string; args?: string }>();
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     const updateAgentMessage = (partial: Partial<Pick<Message, "content" | "toolCalls">>) => {
       setMessages(prev => prev.map(m => (m.id === agentMsgId ? { ...m, ...partial } : m)));
@@ -143,25 +167,42 @@ export function ChatArea({ isMobile = false, isTablet = false, onOpenSidebar, on
           toast.error(message);
           setMessages(prev => prev.filter(m => m.id !== agentMsgId));
         },
-      });
+      }, abortController.signal);
 
       if (!receivedAnyChunk) {
         updateAgentMessage({ content: "The agent didn't return a response. Please try again.", toolCalls: undefined });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000.";
-      toast.error(message);
-      setMessages(prev => prev.filter(m => m.id !== agentMsgId));
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User hit Stop — keep whatever partial content already streamed in,
+        // just clear the "thinking..." tool row so it doesn't look stuck.
+        updateAgentMessage({ toolCalls: undefined });
+      } else {
+        const message = err instanceof Error ? err.message : "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000.";
+        toast.error(message);
+        setMessages(prev => prev.filter(m => m.id !== agentMsgId));
+      }
     } finally {
+      abortControllerRef.current = null;
       setIsTyping(false);
+      // The Python backend generates a real title in the background
+      // (fire-and-forget) as soon as the first message lands — by the
+      // time the agent's reply finishes streaming it's almost always
+      // done, so a quiet refresh here is enough to pick it up without
+      // any extra polling machinery.
+      getSessions().then(setSessions).catch(() => {});
     }
-  }, [isTyping, repo, activeSession, pushToolStatus, resetLiveTools]);
+  }, [isTyping, repo, activeSession, setSessions, pushToolStatus, resetLiveTools]);
 
   async function handleSend() {
     if (!input.trim() || isTyping) return;
     const text = input.trim();
     setInput("");
     await submitMessage(text);
+  }
+
+  function handleStop() {
+    abortControllerRef.current?.abort();
   }
 
   useEffect(() => {
@@ -221,6 +262,7 @@ export function ChatArea({ isMobile = false, isTablet = false, onOpenSidebar, on
         isMobile={isMobile}
         onChange={setInput}
         onSend={handleSend}
+        onStop={handleStop}
       />
     </div>
   );

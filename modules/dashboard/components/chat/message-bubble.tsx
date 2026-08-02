@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Terminal, Bot, User } from "lucide-react";
-import type { Message  } from "@/lib/types";
+import type { Message  } from "@/types";
 import { ToolRow } from "./tool-row";
 import { CodeBlock } from "./code-block";
 import { MarkdownRenderer } from "./markdown-renderer";

@@ -1,22 +1,5 @@
 import { create } from "zustand";
-import type { RepoInfo, Session, ToolCall } from "@/lib/types";
-
-interface DashboardState {
-  // ── Connected repository ──
-  connectedRepo: RepoInfo | null;
-  setConnectedRepo: (repo: RepoInfo | null) => void;
-
-  // ── Chat sessions ──
-  activeSession: string;
-  setActiveSession: (id: string) => void;
-  sessions: Session[];
-  addSession: (session: Session) => void;
-
-  // ── Live agent activity (tool calls for the in-progress / most recent turn) ──
-  liveTools: ToolCall[];
-  pushToolStatus: (name: string, status: "calling" | "done") => void;
-  resetLiveTools: () => void;
-}
+import type { ToolCall, DashboardState } from "@/types";
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   connectedRepo: null,
@@ -29,6 +12,21 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   sessions: [],
   addSession: (session) => set((state) => ({ sessions: [session, ...state.sessions] })),
+  // Replaces the whole list — used to hydrate from the DB-backed
+  // /api/sessions route on load, so history survives a page refresh.
+  // Sessions added locally (addSession) that the DB doesn't know about yet
+  // (no message sent in them yet) are kept so a brand-new chat doesn't
+  // disappear from the sidebar before its first message.
+  setSessions: (fetched) =>
+    set((state) => {
+      const fetchedIds = new Set(fetched.map((s) => s.id));
+      const localOnly = state.sessions.filter((s) => !fetchedIds.has(s.id));
+      return { sessions: [...localOnly, ...fetched] };
+    }),
+  renameSession: (id, title) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) => (s.id === id ? { ...s, title } : s)),
+    })),
 
   liveTools: [],
   pushToolStatus: (name, status) => {

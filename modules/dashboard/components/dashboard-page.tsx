@@ -3,12 +3,24 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "next-themes";
+import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panels";
 
 import { LeftSidebar } from "../components/left-sidebar";
 import { ChatArea } from "../components/chat-area";
 import { RightPanel } from "../components/right-panel";
 import { useWindowSize } from "@/shared/hooks/use-window-size";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
+import { ssrSafeStorage } from "@/shared/lib/ssr-safe-storage";
+import { safeRandomUUID } from "@/shared/lib/safe-random-uuid";
+
+/** Thin draggable divider between panels — highlights on hover/drag. */
+function ResizeHandle() {
+  return (
+    <Separator className="group relative w-[3px] flex-shrink-0 outline-none">
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-primary group-data-[state=drag]:bg-primary" />
+    </Separator>
+  );
+}
 
 export function DashboardPage() {
 
@@ -32,7 +44,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     // Seed the first session id once we're on the client.
-    if (!activeSession) setActiveSession(crypto.randomUUID());
+    if (!activeSession) setActiveSession(safeRandomUUID());
   }, [activeSession, setActiveSession]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -52,6 +64,13 @@ export function DashboardPage() {
 
   const sidebarWidth = isMobile ? 280 : isTablet ? 256 : 280;
   const rightWidth   = isDesktop ? 304 : 300;
+
+  // Persists panel sizes to localStorage between sessions.
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "repobrain-dashboard-layout",
+    panelIds: isDesktop ? ["left-sidebar", "chat-area", "right-panel"] : ["left-sidebar", "chat-area"],
+    storage: ssrSafeStorage,
+  });
 
   return (
     <motion.div
@@ -88,35 +107,53 @@ export function DashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* ── 3-column layout ── */}
+      {/* ── 3-column layout, resizable on tablet + desktop ── */}
       <div style={{ position: "relative", zIndex: 2, display: "flex", width: "100%", height: "100%" }}>
-
-        {/* Sidebar — inline on tablet + desktop */}
-        {!isMobile && (
-          <div style={{ width: sidebarWidth, minWidth: sidebarWidth, height: "100%", flexShrink: 0 }}>
-            <LeftSidebar
+        {isMobile ? (
+          <div style={{ flex: 1, height: "100%", overflow: "hidden", minWidth: 0 }}>
+            <ChatArea
+              isMobile isTablet={isTablet}
+              onOpenSidebar={() => setSidebarOpen(true)}
+              onOpenRightPanel={() => setRightOpen(true)}
+              showRightToggle={!isDesktop}
               isDark={isDark} setIsDark={setIsDark}
-              isMobile={false} isTablet={isTablet}
             />
           </div>
-        )}
+        ) : (
+          <Group
+            orientation="horizontal"
+            style={{ width: "100%", height: "100%" }}
+            defaultLayout={defaultLayout}
+            onLayoutChanged={onLayoutChanged}
+          >
+            <Panel id="left-sidebar" defaultSize="19%" minSize="14%" maxSize="34%">
+              <LeftSidebar
+                isDark={isDark} setIsDark={setIsDark}
+                isMobile={false} isTablet={isTablet}
+              />
+            </Panel>
 
-        {/* Chat area */}
-        <div style={{ flex: 1, height: "100%", overflow: "hidden", minWidth: 0 }}>
-          <ChatArea
-            isMobile={isMobile} isTablet={isTablet}
-            onOpenSidebar={() => setSidebarOpen(true)}
-            onOpenRightPanel={() => setRightOpen(true)}
-            showRightToggle={!isDesktop}
-            isDark={isDark} setIsDark={setIsDark}
-          />
-        </div>
+            <ResizeHandle />
 
-        {/* Right panel — inline on desktop only */}
-        {isDesktop && (
-          <div style={{ width: rightWidth, minWidth: rightWidth, height: "100%", flexShrink: 0 }}>
-            <RightPanel isMobile={false} />
-          </div>
+            <Panel id="chat-area" minSize="30%">
+              <ChatArea
+                isMobile={false} isTablet={isTablet}
+                onOpenSidebar={() => setSidebarOpen(true)}
+                onOpenRightPanel={() => setRightOpen(true)}
+                showRightToggle={!isDesktop}
+                isDark={isDark} setIsDark={setIsDark}
+              />
+            </Panel>
+
+            {isDesktop && (
+              <>
+                <ResizeHandle />
+                <Panel id="right-panel" defaultSize="21%" minSize="14%" maxSize="34%">
+                  <RightPanel isMobile={false} />
+                </Panel>
+              </>
+            )}
+          </Group>
         )}
       </div>
 

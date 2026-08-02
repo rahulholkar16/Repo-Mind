@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import React from "react";
 import { Badge } from "@/shared/components/ui/badge";
+export type { LandingProps } from "@/types";
 
 export function getC(isDark: boolean) {
   return {
@@ -22,12 +23,6 @@ export function getC(isDark: boolean) {
 
 export const mono = { fontFamily: "'JetBrains Mono', monospace" } as const;
 export const sans = { fontFamily: "'Inter', sans-serif" } as const;
-
-export interface LandingProps {
-  onEnterApp: () => void;
-  isDark: boolean;
-  setIsDark: (v: boolean) => void;
-}
 
 export function Tag({ children, color }: { children: React.ReactNode; color: string }) {
   return (

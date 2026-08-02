@@ -7,14 +7,9 @@ import { HowItWorks } from "./landing/how-it-works";
 import { Testimonials } from "./landing/testimonials";
 import { FinalCTA } from "./landing/final-cta";
 import { Footer } from "./landing/footer";
+import type { LandingProps } from "@/types";
 
-interface Props {
-  onEnterApp: () => void;
-  isDark: boolean;
-  setIsDark: (v: boolean) => void;
-}
-
-export function LandingPage({ onEnterApp, isDark, setIsDark }: Props) {
+export function LandingPage({ onEnterApp, isDark, setIsDark }: LandingProps) {
   const C = getC(isDark);
 
   return (

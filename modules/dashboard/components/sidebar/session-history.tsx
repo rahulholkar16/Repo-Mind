@@ -2,20 +2,11 @@
 
 import { motion } from "motion/react";
 import { Clock, MessageSquare, ChevronRight } from "lucide-react";
-import { ScrollArea } from "@/shared/components/ui/scroll-area";
-import type { Session } from "@/lib/types";
-
-interface SessionHistoryProps {
-  sessions: Session[];
-  activeSession: string;
-  setActiveSession: (id: string) => void;
-  onClose?: () => void;
-  isMobile: boolean;
-}
+import type { SessionHistoryProps } from "@/types";
 
 export function SessionHistory({ sessions, activeSession, setActiveSession, onClose, isMobile }: SessionHistoryProps) {
   return (
-    <ScrollArea className="flex-1 px-2 py-2.5">
+    <div className="px-2 py-2.5">
       <div className="flex items-center gap-1.5 px-1.5 mb-1.5">
         <Clock size={11} className="text-muted-foreground" />
         <span className="font-mono text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -59,6 +50,6 @@ export function SessionHistory({ sessions, activeSession, setActiveSession, onCl
           );
         })}
       </div>
-    </ScrollArea>
+    </div>
   );
 }

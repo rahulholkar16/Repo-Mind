@@ -1,4 +1,4 @@
-import type { IndexRepoResponse } from "@/lib/api";
+import type { IndexRepoResponse } from "@/types";
 
 async function pollIndexJob(jobId: string): Promise<IndexRepoResponse> {
     while (true) {

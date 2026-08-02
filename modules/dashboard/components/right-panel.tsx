@@ -2,11 +2,7 @@ import { AgentActivity } from "./panel/agent-activity";
 import { FileTree } from "./panel/file-tree";
 import { QuickActions } from "./panel/quick-actions";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
-
-interface RightPanelProps {
-  isMobile?: boolean;
-  onClose?: () => void;
-}
+import type { RightPanelProps } from "@/types";
 
 export function RightPanel({ isMobile = false, onClose }: RightPanelProps) {
   const repo      = useDashboardStore((s) => s.connectedRepo);

@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Terminal } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
-import type { ToolCall } from "@/lib/types";
+import type { ToolCall } from "@/types";
 
 export const TOOL_META: Record<string, { color: string }> = {
   list_directory:   { color: "#F59E0B" },  // amber

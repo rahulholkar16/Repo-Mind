@@ -1,18 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { Send, Paperclip } from "lucide-react";
+import { Send, Paperclip, Square } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import type { ChatInputProps } from "@/types";
 
-interface ChatInputProps {
-  input: string;
-  isTyping: boolean;
-  isMobile: boolean;
-  onChange: (value: string) => void;
-  onSend: () => void;
-}
-
-export function ChatInput({ input, isTyping, isMobile, onChange, onSend }: ChatInputProps) {
+export function ChatInput({ input, isTyping, isMobile, onChange, onSend, onStop }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -42,7 +35,10 @@ export function ChatInput({ input, isTyping, isMobile, onChange, onSend }: ChatI
           ref={textareaRef}
           value={input}
           onChange={handleChange}
-          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+            else if (e.key === "Escape" && isTyping) { e.preventDefault(); onStop(); }
+          }}
           placeholder="Ask anything about this repository…"
           rows={1}
           className={`w-full box-border bg-transparent text-foreground font-sans border-none outline-none resize-none ${
@@ -57,17 +53,28 @@ export function ChatInput({ input, isTyping, isMobile, onChange, onSend }: ChatI
           <div className={`flex items-center ${isMobile ? "gap-2" : "gap-2.5"}`}>
             {!isMobile && (
               <span className="font-mono text-[10px] text-muted-foreground">
-                ↵ send · ⇧↵ newline
+                {isTyping ? "esc to stop" : "↵ send · ⇧↵ newline"}
               </span>
             )}
-            <Button
-              size="icon"
-              onClick={handleSend}
-              disabled={!input.trim() || isTyping}
-              className={isMobile ? "w-9 h-9" : "w-8 h-8"}
-            >
-              <Send size={isMobile ? 15 : 13} />
-            </Button>
+            {isTyping ? (
+              <Button
+                size="icon"
+                onClick={onStop}
+                title="Stop generating"
+                className={isMobile ? "w-9 h-9" : "w-8 h-8"}
+              >
+                <Square size={isMobile ? 13 : 11} fill="currentColor" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className={isMobile ? "w-9 h-9" : "w-8 h-8"}
+              >
+                <Send size={isMobile ? 15 : 13} />
+              </Button>
+            )}
           </div>
         </div>
       </div>

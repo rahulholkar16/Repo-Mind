@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  // A user can connect and index multiple repos.
+  repos         Repo[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Repo {
+  id            String    @id @default(uuid())
+  userId        String
+  repoUrl       String
+  owner         String
+  name          String
+  languages     String[]
+  stars         Int       @default(0)
+  description   String?
+  githubId      String
+  forks         Int       @default(0)
+  isPrivate     Boolean   @default(false)
+  defaultBranch String    @default("main")
+
+  isIndexed     Boolean   @default(false)
+  indexedAt     DateTime?
+
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  @default(now())
+
+  ChatSessions  ChatSession[]
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One user can reconnect the same GitHub repo without conflicting with
+  // another user who has also connected it — uniqueness is per-user, not
+  // global (githubId alone is no longer @unique).
+  @@unique([userId, githubId])
+  @@index([userId])
+}
+
+model ChatSession {
+  id        String    @id     @default(uuid())
+  repoId    String
+  threadId  String    @unique @default(dbgenerated("gen_random_uuid()"))
+  title     String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages  Message[]
+  repo      Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@index([repoId])
+  @@map("chat_sessions")
+}
+
+enum ROLE {
+  user
+  assistant
+  tool
+}
+
+model Message {
+  id        String     @id  @default(uuid())
+  sessionId String
+  role      ROLE
+  content   String
+  toolCalls Json?
+  createdAt DateTime    @default(now())
+
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("messages")
+}

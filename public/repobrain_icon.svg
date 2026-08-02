@@ -1,0 +1,33 @@
+<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RepoBrain icon">
+  <title>RepoBrain</title>
+  <g transform="translate(55, 55)">
+    <polygon points="0,-52 45,-26 45,26 0,52 -45,26 -45,-26" fill="none" stroke="#FF6B35" stroke-width="1.5"/>
+    <polygon points="0,-36 31,-18 31,18 0,36 -31,18 -31,-18" fill="none" stroke="#FF6B35" stroke-width="0.5" opacity="0.35"/>
+    <polygon points="0,-44 38,-22 38,22 0,44 -38,22 -38,-22" fill="none" stroke="#FF6B35" stroke-width="0.3" opacity="0.2"/>
+
+    <circle cx="-24" cy="-10" r="5.5" fill="#FF6B35"/>
+    <circle cx="24" cy="-10" r="5.5" fill="#FCA311"/>
+    <circle cx="0" cy="20" r="5.5" fill="#FF6B35"/>
+    <circle cx="0" cy="-2" r="7" fill="#FF6B35"/>
+    <circle cx="0" cy="-2" r="3" fill="#FCA311" opacity="0.8"/>
+
+    <line x1="-18.5" y1="-10" x2="-7" y2="-2" stroke="#FF6B35" stroke-width="1.5"/>
+    <line x1="18.5" y1="-10" x2="7" y2="-2" stroke="#FCA311" stroke-width="1.5"/>
+    <line x1="0" y1="5" x2="0" y2="14.5" stroke="#FF6B35" stroke-width="1.5"/>
+    <line x1="-18.5" y1="-10" x2="18.5" y2="-10" stroke="#FF6B35" stroke-width="0.8" opacity="0.4"/>
+
+    <line x1="0" y1="-52" x2="0" y2="-40" stroke="#FF6B35" stroke-width="1.2" opacity="0.7"/>
+    <line x1="45" y1="-26" x2="34" y2="-20" stroke="#FCA311" stroke-width="1.2" opacity="0.6"/>
+    <line x1="45" y1="26" x2="34" y2="20" stroke="#FF6B35" stroke-width="1.2" opacity="0.6"/>
+    <line x1="-45" y1="-26" x2="-34" y2="-20" stroke="#FCA311" stroke-width="1.2" opacity="0.6"/>
+    <line x1="-45" y1="26" x2="-34" y2="20" stroke="#FF6B35" stroke-width="1.2" opacity="0.4"/>
+    <line x1="0" y1="52" x2="0" y2="40" stroke="#FCA311" stroke-width="1.2" opacity="0.4"/>
+
+    <circle cx="0" cy="-52" r="3" fill="#FCA311"/>
+    <circle cx="45" cy="-26" r="2.5" fill="#FF6B35" opacity="0.8"/>
+    <circle cx="45" cy="26" r="2.5" fill="#FCA311" opacity="0.7"/>
+    <circle cx="-45" cy="-26" r="2.5" fill="#FF6B35" opacity="0.8"/>
+    <circle cx="-45" cy="26" r="2.5" fill="#FCA311" opacity="0.7"/>
+    <circle cx="0" cy="52" r="3" fill="#FF6B35" opacity="0.6"/>
+  </g>
+</svg>

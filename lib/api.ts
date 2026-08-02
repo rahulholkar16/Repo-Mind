@@ -1,4 +1,32 @@
-import type { ToolCall } from "./types";
+import type {
+  ToolCall,
+  RepoRequest,
+  AgentRequest,
+  RepoInfoResponse,
+  FileNode,
+  RepoTreeResponse,
+  IndexRepoResponse,
+  AgentChatResponse,
+  SessionSummary,
+  SessionMessage,
+  ConnectRepoResponse,
+  NewSessionResponse,
+  StreamHandlers,
+} from "@/types";
+export type {
+  RepoRequest,
+  AgentRequest,
+  RepoInfoResponse,
+  FileNode,
+  RepoTreeResponse,
+  IndexRepoResponse,
+  AgentChatResponse,
+  SessionSummary,
+  SessionMessage,
+  ConnectRepoResponse,
+  NewSessionResponse,
+  StreamHandlers,
+} from "@/types";
 
 // const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://ai-services-1zfs.onrender.com";
 const API_BASE = "http://0.0.0.0:8000";
@@ -7,49 +35,7 @@ const WORKER_API = "http://host.docker.internal:8000";
 // repo_full_name ("owner/repo") is derived on the backend from the URL,
 // so the frontend only ever needs to send the plain GitHub URL.
 
-export interface RepoRequest {
-  repo_url: string;
-}
 
-export interface AgentRequest {
-  repo_url: string;
-  question: string;
-  thread_id: string;
-  repo_id: string;
-}
-
-export interface RepoInfoResponse {
-  owner: string;
-  name: string;
-  language: string;
-  stars: number;
-  description: string;
-}
-
-export interface FileNode {
-  name: string;
-  type: "dir" | "file";
-  ext?: string;
-  children?: FileNode[];
-}
-
-export interface RepoTreeResponse {
-  repo_full_name: string;
-  tree: FileNode[];
-}
-
-export interface IndexRepoResponse {
-  message: string;
-  repo_full_name: string;
-  total_chunks: number;
-}
-
-export interface AgentChatResponse {
-  answer: string;
-  codeBlock?: { language: string; code: string };
-  toolCalls?: ToolCall[];
-  thread_id: string;
-}
 
 async function handle<T>(res: Response, errorMessage: string): Promise<T> {
   if (!res.ok) {
@@ -121,17 +107,74 @@ export async function askAgent(
   return handle(res, "Failed to chat with agent");
 }
 
-export interface StreamHandlers {
-  /** Called every time the final answer text chunk arrives. */
-  onChunk: (text: string) => void;
-  /** Called when the model decides to call a tool (name only, no args). */
-  onToolCall: (toolName: string) => void;
-  /** Called when a tool finishes and returns a result (name only, no raw content). */
-  onToolResult: (toolName: string) => void;
-  onDone: () => void;
-  onError: (message: string) => void;
+/**
+ * List every persisted chat session for the CURRENT user, read via Prisma
+ * (ChatSession → Repo → userId). Served by a Next.js API route
+ * (app/api/sessions) — no FastAPI involved.
+ */
+export async function getSessions(): Promise<SessionSummary[]> {
+  const res = await fetch("/api/sessions");
+  const data = await handle<{ sessions: SessionSummary[] }>(res, "Failed to load session history");
+  return data.sessions;
 }
 
+/**
+ * Fetch the full past message history for one session/thread so it can be
+ * restored into the chat window when the user clicks it in the sidebar.
+ */
+export async function getSessionMessages(threadId: string): Promise<SessionMessage[]> {
+  const res = await fetch(`/api/sessions/messages?threadId=${encodeURIComponent(threadId)}`);
+  const data = await handle<{ messages: SessionMessage[] }>(res, "Failed to load session messages");
+  return data.messages;
+}
+
+/**
+ * Persists the connected repo (and its first chat session) to Postgres via
+ * Prisma, scoped to the logged-in user. Call this once repo info / tree /
+ * indexing have all succeeded.
+ */
+export async function connectRepoRecord(params: {
+  repoUrl: string;
+  owner: string;
+  name: string;
+  language?: string;
+  stars?: number;
+  description?: string;
+  githubId?: string;
+  isPrivate?: boolean;
+  defaultBranch?: string;
+}): Promise<ConnectRepoResponse> {
+  const res = await fetch("/api/repos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handle(res, "Failed to save connected repo");
+}
+
+/** Creates a new ChatSession row under an already-connected repo. */
+export async function createNewSession(repoId: string): Promise<NewSessionResponse> {
+  const res = await fetch("/api/sessions/new", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repoId }),
+  });
+  return handle(res, "Failed to start a new chat session");
+}
+
+/**
+ * Renames a session — used to auto-title a chat from its first message,
+ * the same way ChatGPT/Claude do it. Fire-and-forget from the UI's
+ * perspective; callers can ignore the resolved value.
+ */
+export async function renameSession(threadId: string, title: string): Promise<void> {
+  const res = await fetch("/api/sessions/title", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ threadId, title }),
+  });
+  await handle(res, "Failed to rename session");
+}
 
 export async function streamAgent(
   repoUrl: string,

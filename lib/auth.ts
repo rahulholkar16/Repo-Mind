@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "./prisma";
+import { nextCookies } from "better-auth/next-js";
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -8,6 +9,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    autoSignIn: true
   },
   socialProviders: {
     google: {
@@ -18,9 +20,18 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ["google"],
+      trustedProviders: ["google", "email-password"],
     },
   },
+  emailVerification: {
+    autoSignInAfterVerification: true,
+    requireEmailVerification: false, 
+  },
+  plugins: [nextCookies()],
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000",
+  ],
 });

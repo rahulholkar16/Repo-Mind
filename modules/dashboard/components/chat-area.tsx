@@ -9,6 +9,7 @@ import { TypingIndicator } from "./chat/typing-indicator";
 import { ChatInput } from "./chat/chat-input";
 import { streamAgent, getSessionMessages, getSessions } from "@/lib/api";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
+import { useSession } from "@/lib/auth-client";
 
 let messageIdCounter = 0;
 
@@ -23,6 +24,7 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
   const setSessions      = useDashboardStore((s) => s.setSessions);
   const pushToolStatus   = useDashboardStore((s) => s.pushToolStatus);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
+  const { data: authSession } = useSession();
 
   const [messages,      setMessages]      = useState<Message[]>([]);
   const [input,         setInput]         = useState("");
@@ -53,14 +55,9 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
 
   if (conversationKey !== renderedKey) {
     setRenderedKey(conversationKey);
-    // Show the welcome bubble immediately, then swap in the real history
-    // (if this thread has any) once it loads from the checkpoint DB.
     setMessages(welcomeMessages());
   }
 
-  // Load this session's saved history whenever we switch to a thread that
-  // has one. Keyed on conversationKey so a fast switch back and forth
-  // can't let a stale response overwrite a newer one.
   useEffect(() => {
     if (!activeSession) return;
     let cancelled = false;
@@ -101,8 +98,6 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
     setMessages(prev => [...prev, { id: nextMessageId(), role: "user", content: text, timestamp: now }]);
     setIsTyping(true);
 
-    // Fresh turn — clear the right panel's activity log and the bubble's
-    // local tool tracker together so both views start from zero.
     resetLiveTools();
 
     const agentMsgId = nextMessageId();
@@ -115,8 +110,7 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
     }]);
 
     let receivedAnyChunk = false;
-    // Live-updated list of tool activity (call -> result) shown in the
-    // bubble's tool-row area while the agent is working.
+    let accumulatedContent = "";
     const activeTools = new Map<string, { name: string; args?: string }>();
 
     const abortController = new AbortController();
@@ -129,8 +123,6 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
     const pushLocalToolStatus = (name: string, status: "calling" | "done") => {
       activeTools.set(name, { name, args: status === "calling" ? "running..." : "done" });
       updateAgentMessage({ toolCalls: Array.from(activeTools.values()) });
-      // Mirror the same event into the shared store so the right-panel
-      // "Agent Activity" card reflects exactly what's happening live.
       pushToolStatus(name, status);
     };
 
@@ -142,28 +134,24 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
 
       const threadId = activeSession || "default";
       const repoId = repo ? `${repo.owner}/${repo.name}` : "unknown";
+      const userId = authSession?.user?.id ?? "anonymous";
 
-      await streamAgent(repoUrl, text, threadId, repoId, {
+      await streamAgent(repoUrl, text, threadId, repoId, userId, {
         onToolCall: (toolName) => {
-          // Model just decided to call this tool — show it as active.
           pushLocalToolStatus(toolName, "calling");
         },
         onToolResult: (toolName) => {
-          // Tool finished — mark it done, but keep the row visible so the
-          // user can see everything the agent looked at.
           pushLocalToolStatus(toolName, "done");
         },
         onChunk: (chunk) => {
-          // This is the final answer text — clear tool activity and show it.
           receivedAnyChunk = true;
-          updateAgentMessage({ content: chunk, toolCalls: undefined });
+          accumulatedContent += chunk;
+          updateAgentMessage({ content: accumulatedContent, toolCalls: undefined });
         },
         onDone: () => {
           // Nothing more to do here — typing indicator stops in `finally`.
         },
         onError: (message) => {
-          // Show the error as a toast instead of a permanent chat bubble,
-          // and drop the empty "thinking" placeholder message.
           toast.error(message);
           setMessages(prev => prev.filter(m => m.id !== agentMsgId));
         },
@@ -174,8 +162,6 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        // User hit Stop — keep whatever partial content already streamed in,
-        // just clear the "thinking..." tool row so it doesn't look stuck.
         updateAgentMessage({ toolCalls: undefined });
       } else {
         const message = err instanceof Error ? err.message : "Failed to communicate with the AI services. Please ensure the backend is running on http://localhost:8000.";
@@ -185,11 +171,6 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
     } finally {
       abortControllerRef.current = null;
       setIsTyping(false);
-      // The Python backend generates a real title in the background
-      // (fire-and-forget) as soon as the first message lands — by the
-      // time the agent's reply finishes streaming it's almost always
-      // done, so a quiet refresh here is enough to pick it up without
-      // any extra polling machinery.
       getSessions().then(setSessions).catch(() => {});
     }
   }, [isTyping, repo, activeSession, setSessions, pushToolStatus, resetLiveTools]);

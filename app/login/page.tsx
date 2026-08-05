@@ -9,7 +9,6 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/shared/components/ui/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,8 +56,6 @@ export default function LoginPage() {
         toast.error(error.message || "Google sign-in failed.");
         setGoogleLoading(false);
       }
-      // On success, better-auth redirects the browser to Google, so no
-      // further action is needed here.
     } catch {
       toast.error("Google sign-in failed.");
       setGoogleLoading(false);

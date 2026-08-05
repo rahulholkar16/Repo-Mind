@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { db } from "@/lib/prisma";
 
-/**
- * POST /api/repos
- * Called right after a repo is successfully connected/indexed on the
- * client. Upserts a Repo row for the current user (one user can now
- * connect many repos — githubId is only unique per-user, not globally) and
- * creates the first ChatSession for it.
- */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
@@ -22,9 +15,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "repoUrl, owner and name are required." }, { status: 400 });
   }
 
-  // The ai-services /api/repo/info endpoint doesn't currently return
-  // GitHub's numeric repo id, so we fall back to "owner/name" — still
-  // unique per user, which is all @@unique([userId, githubId]) needs.
   const resolvedGithubId: string = githubId || `${owner}/${name}`;
 
   try {

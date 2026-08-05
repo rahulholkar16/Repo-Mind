@@ -10,6 +10,12 @@ export interface ChatHeaderProps {
   showRightToggle: boolean;
   isDark: boolean;
   setIsDark?: (v: boolean) => void;
+  showLeftCollapseToggle?: boolean;
+  leftCollapsed?: boolean;
+  onToggleLeftPanel?: () => void;
+  showRightCollapseToggle?: boolean;
+  rightCollapsed?: boolean;
+  onToggleRightPanel?: () => void;
 }
 
 export interface ChatInputProps {
@@ -29,6 +35,12 @@ export interface ChatAreaProps {
   showRightToggle?: boolean;
   isDark?: boolean;
   setIsDark?: (v: boolean) => void;
+  showLeftCollapseToggle?: boolean;
+  leftCollapsed?: boolean;
+  onToggleLeftPanel?: () => void;
+  showRightCollapseToggle?: boolean;
+  rightCollapsed?: boolean;
+  onToggleRightPanel?: () => void;
 }
 
 export interface LeftSidebarProps {
@@ -37,6 +49,8 @@ export interface LeftSidebarProps {
   isMobile?: boolean;
   isTablet?: boolean;
   onClose?: () => void;
+  showCollapseToggle?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export interface RightPanelProps {

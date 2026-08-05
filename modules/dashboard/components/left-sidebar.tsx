@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Sun, Moon, X, LogOut } from "lucide-react";
+import { Plus, Sun, Moon, X, LogOut, PanelLeftClose } from "lucide-react";
 import { toast } from "sonner";
 import { RepoBrainMark } from "@/shared/components/RepoBrainMark";
 import { Button } from "@/shared/components/ui/button";
@@ -15,7 +15,7 @@ import { getRepoInfo, indexRepository, getRepositoryTree, getSessions, connectRe
 import { authClient } from "@/lib/auth-client";
 import pollIndexJob from "@/modules/dashboard/utils/poll-index-job";
 
-export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = false, onClose }: LeftSidebarProps) {
+export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = false, onClose, showCollapseToggle = false, onToggleCollapse }: LeftSidebarProps) {
   const router = useRouter();
   const connectedRepo    = useDashboardStore((s) => s.connectedRepo);
   const setConnectedRepo = useDashboardStore((s) => s.setConnectedRepo);
@@ -195,6 +195,18 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
             className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8"
           >
             <X size={15} />
+          </Button>
+        )}
+
+        {!isMobile && showCollapseToggle && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onToggleCollapse}
+            title="Hide sidebar"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8 hover:border-primary hover:text-primary"
+          >
+            <PanelLeftClose size={15} />
           </Button>
         )}
       </div>

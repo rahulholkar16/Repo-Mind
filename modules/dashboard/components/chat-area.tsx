@@ -18,7 +18,11 @@ function nextMessageId(): string {
   return `${Date.now()}-${messageIdCounter}`;
 }
 
-export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, showRightToggle = false, isDark = false, setIsDark }: ChatAreaProps) {
+export function ChatArea({
+  isMobile = false, onOpenSidebar, onOpenRightPanel, showRightToggle = false, isDark = false, setIsDark,
+  showLeftCollapseToggle, leftCollapsed, onToggleLeftPanel,
+  showRightCollapseToggle, rightCollapsed, onToggleRightPanel,
+}: ChatAreaProps) {
   const repo            = useDashboardStore((s) => s.connectedRepo);
   const activeSession    = useDashboardStore((s) => s.activeSession);
   const setSessions      = useDashboardStore((s) => s.setSessions);
@@ -208,6 +212,12 @@ export function ChatArea({ isMobile = false, onOpenSidebar, onOpenRightPanel, sh
         showRightToggle={showRightToggle}
         isDark={isDark}
         setIsDark={setIsDark}
+        showLeftCollapseToggle={showLeftCollapseToggle}
+        leftCollapsed={leftCollapsed}
+        onToggleLeftPanel={onToggleLeftPanel}
+        showRightCollapseToggle={showRightCollapseToggle}
+        rightCollapsed={rightCollapsed}
+        onToggleRightPanel={onToggleRightPanel}
       />
 
       <div

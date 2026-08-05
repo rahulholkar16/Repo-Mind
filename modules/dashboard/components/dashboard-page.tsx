@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "next-themes";
-import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panels";
+import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from "react-resizable-panels";
 
 import { LeftSidebar } from "../components/left-sidebar";
 import { ChatArea } from "../components/chat-area";
@@ -49,6 +49,24 @@ export function DashboardPage() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightOpen,   setRightOpen]   = useState(false);
+
+  // Persistent (tablet/desktop) collapse state for the left + right panels —
+  // distinct from the mobile/tablet drawer open/close state above.
+  const leftPanelRef  = usePanelRef();
+  const rightPanelRef = usePanelRef();
+  const [leftCollapsed,  setLeftCollapsed]  = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+
+  const toggleLeftPanel = () => {
+    const panel = leftPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand(); else panel.collapse();
+  };
+  const toggleRightPanel = () => {
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand(); else panel.collapse();
+  };
 
   /* Close drawers when resizing to desktop */
   useEffect(() => {
@@ -126,10 +144,16 @@ export function DashboardPage() {
             defaultLayout={defaultLayout}
             onLayoutChanged={onLayoutChanged}
           >
-            <Panel id="left-sidebar" defaultSize="19%" minSize="14%" maxSize="34%">
+            <Panel
+              id="left-sidebar" defaultSize="19%" minSize="14%" maxSize="34%"
+              collapsible collapsedSize="0%" panelRef={leftPanelRef}
+              onResize={() => setLeftCollapsed(!!leftPanelRef.current?.isCollapsed())}
+            >
               <LeftSidebar
                 isDark={isDark} setIsDark={setIsDark}
                 isMobile={false} isTablet={isTablet}
+                showCollapseToggle={isDesktop}
+                onToggleCollapse={toggleLeftPanel}
               />
             </Panel>
 
@@ -142,13 +166,23 @@ export function DashboardPage() {
                 onOpenRightPanel={() => setRightOpen(true)}
                 showRightToggle={!isDesktop}
                 isDark={isDark} setIsDark={setIsDark}
+                showLeftCollapseToggle={isDesktop}
+                leftCollapsed={leftCollapsed}
+                onToggleLeftPanel={toggleLeftPanel}
+                showRightCollapseToggle={isDesktop}
+                rightCollapsed={rightCollapsed}
+                onToggleRightPanel={toggleRightPanel}
               />
             </Panel>
 
             {isDesktop && (
               <>
                 <ResizeHandle />
-                <Panel id="right-panel" defaultSize="21%" minSize="14%" maxSize="34%">
+                <Panel
+                  id="right-panel" defaultSize="21%" minSize="14%" maxSize="34%"
+                  collapsible collapsedSize="0%" panelRef={rightPanelRef}
+                  onResize={() => setRightCollapsed(!!rightPanelRef.current?.isCollapsed())}
+                >
                   <RightPanel isMobile={false} />
                 </Panel>
               </>

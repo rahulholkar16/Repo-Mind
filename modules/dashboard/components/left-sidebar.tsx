@@ -28,6 +28,7 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
 
   const [urlInput,   setUrlInput]   = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [reindexing, setReindexing] = useState(false);
 
   // Hydrate session history from Postgres (via Prisma) on load, so past
   // conversations are still there after a refresh.
@@ -132,6 +133,38 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
     }
   }
 
+  async function handleReindex() {
+    if (reindexing || !connectedRepo) return;
+    setReindexing(true);
+    const repoUrl = `https://github.com/${connectedRepo.owner}/${connectedRepo.name}`;
+
+    try {
+      const enqueRes = await fetch("/api/index-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: repoUrl, force: true }),
+      });
+
+      if (!enqueRes.ok) {
+        throw new Error("Failed to queue re-indexing");
+      }
+
+      const { jobId } = await enqueRes.json();
+      toast.info("Re-indexing started — this can take a few minutes for large repos.");
+      const indexRes = await pollIndexJob(jobId);
+
+      if (indexRes && typeof indexRes.total_chunks === "number") {
+        setConnectedRepo({ ...connectedRepo, indexedChunks: indexRes.total_chunks });
+      }
+      toast.success("Repository re-indexed — the agent now sees the latest code.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to re-index repository.";
+      toast.error(message);
+    } finally {
+      setReindexing(false);
+    }
+  }
+
   async function handleNewChat() {
     if (!connectedRepo?.id) {
       toast.error("Connect a repository first.");
@@ -219,6 +252,8 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
           onConnect={handleConnect}
           connectedRepo={connectedRepo}
           isTablet={isTablet}
+          reindexing={reindexing}
+          onReindex={handleReindex}
         />
 
         <SessionHistory

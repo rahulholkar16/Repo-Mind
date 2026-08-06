@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Github, Zap, Star } from "lucide-react";
+import { Github, Zap, Star, RotateCw } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
@@ -15,7 +15,7 @@ const LANG_COLORS: Record<string, string> = {
 
 function fmt(n: number) { return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n); }
 
-export function RepoConnect({ urlInput, setUrlInput, connecting, onConnect, connectedRepo, isTablet }: RepoConnectProps) {
+export function RepoConnect({ urlInput, setUrlInput, connecting, onConnect, connectedRepo, isTablet, reindexing = false, onReindex }: RepoConnectProps) {
   return (
     <div className={`flex-shrink-0 border-b border-border ${isTablet ? "px-3.5 py-3" : "px-4 py-4"}`}>
       <div className="font-mono text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -63,9 +63,22 @@ export function RepoConnect({ urlInput, setUrlInput, connecting, onConnect, conn
                 <span className="text-xs font-semibold text-foreground">
                   {connectedRepo.owner}/{connectedRepo.name}
                 </span>
-                <Badge variant="outline" className="gap-1 text-[11px] font-semibold text-accent-foreground border-none px-0">
-                  <Star size={10} fill="var(--accent)" color="var(--accent)" /> {fmt(connectedRepo.stars)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="gap-1 text-[11px] font-semibold text-accent-foreground border-none px-0">
+                    <Star size={10} fill="var(--accent)" color="var(--accent)" /> {fmt(connectedRepo.stars)}
+                  </Badge>
+                  {onReindex && (
+                    <button
+                      type="button"
+                      onClick={onReindex}
+                      disabled={reindexing}
+                      title="Re-index repository (picks up new commits)"
+                      className="text-muted-foreground hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <RotateCw size={12} className={reindexing ? "animate-spin" : ""} />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-[11px] text-muted-foreground mb-1.5 leading-relaxed">{connectedRepo.description}</p>
               <div className="flex items-center gap-1.5">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "next-themes";
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from "react-resizable-panels";
@@ -12,6 +13,7 @@ import { useWindowSize } from "@/shared/hooks/use-window-size";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
 import { ssrSafeStorage } from "@/shared/lib/ssr-safe-storage";
 import { safeRandomUUID } from "@/shared/lib/safe-random-uuid";
+import { authClient } from "@/lib/auth-client";
 
 /** Thin draggable divider between panels — highlights on hover/drag. */
 function ResizeHandle() {
@@ -23,6 +25,19 @@ function ResizeHandle() {
 }
 
 export function DashboardPage() {
+
+  // Route guard — mirrors leetcode_clone's create-problem-view.tsx pattern:
+  // AuthLayer (root layout) already waited for the session to resolve, so by
+  // the time this component mounts `isPending` is false. If there's no
+  // session, bounce to /login (preserving where the user was headed).
+  const { data: session } = authClient.useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!session) {
+      router.push("/login?next=/dashboard");
+    }
+  }, [session, router]);
 
   const { resolvedTheme, setTheme } = useTheme();
   // resolvedTheme is undefined until next-themes has resolved on the client;
@@ -89,6 +104,9 @@ export function DashboardPage() {
     panelIds: isDesktop ? ["left-sidebar", "chat-area", "right-panel"] : ["left-sidebar", "chat-area"],
     storage: ssrSafeStorage,
   });
+
+  // All hooks are declared above this line — safe to bail out now.
+  if (!session) return null;
 
   return (
     <motion.div

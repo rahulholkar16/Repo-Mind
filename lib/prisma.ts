@@ -7,7 +7,6 @@ const connectionString = `${process.env.DATABASE_URL}`;
 if (!connectionString)
   throw new Error("ERROR:: Connection String not found. Please set DATABASE_URL.");
 
-
 const pool = new Pool({
   connectionString: connectionString,
   max: 15,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/shared/components/theme-provider";
+import { AuthLayer } from "@/shared/components/auth-layer";
 import { Toaster } from "@/shared/components/ui/sonner";
 import "./globals.css";
 
@@ -17,7 +18,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          {children}
+          <AuthLayer>{children}</AuthLayer>
           <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>
       </body>

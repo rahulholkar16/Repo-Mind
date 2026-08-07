@@ -73,6 +73,8 @@ export interface RepoConnectProps {
   onConnect: () => void;
   connectedRepo: RepoInfo | null;
   isTablet: boolean;
+  reindexing?: boolean;
+  onReindex?: () => void;
 }
 
 export interface AgentActivityProps {

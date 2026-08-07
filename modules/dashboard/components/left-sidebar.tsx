@@ -116,9 +116,6 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
       repoData.id = repo.id;
 
       setConnectedRepo(repoData);
-      // Force a fresh conversation thread whenever a (new) repo is connected —
-      // otherwise the agent keeps the old repo's messages/tool results in
-      // context and answers about the wrong repository.
       resetLiveTools();
       addSession({ id: session.threadId, repoName: `${owner}/${name}`, title: session.title, timestamp: "Now" });
       setActiveSession(session.threadId);

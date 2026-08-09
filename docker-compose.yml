@@ -63,6 +63,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - WORKER_AI_SERVICE_URL=${WORKER_AI_SERVICE_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

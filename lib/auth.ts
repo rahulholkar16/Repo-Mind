@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "./prisma";
 import { nextCookies } from "better-auth/next-js";
+import { jwt } from "better-auth/plugins"
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -27,7 +28,11 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     requireEmailVerification: false, 
   },
-  plugins: [nextCookies()],
+  plugins: [jwt({
+    jwt: {
+      expirationTime: "1h",
+    },
+  }), nextCookies()],
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
   trustedOrigins: [

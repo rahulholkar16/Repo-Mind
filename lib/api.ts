@@ -10,14 +10,14 @@ import type {
   StreamHandlers,
 } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://ai-services-1zfs.onrender.com";
-// const API_BASE = "http://0.0.0.0:8000";
-// const WORKER_API = "http://host.docker.internal:8000";
+// const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://ai-services-1zfs.onrender.com";
+const WORKER_AI_SERVICE_URL = process.env.WORKER_AI_SERVICE_URL || "http://0.0.0.0:8000"; // used only by the worker (Docker container, no Next.js request context there)
 
 
 async function handle<T>(res: Response, errorMessage: string): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
+    console.log("API error response:", res.status, body);
     throw new Error(body?.detail || errorMessage);
   }
   return res.json();
@@ -26,9 +26,10 @@ async function handle<T>(res: Response, errorMessage: string): Promise<T> {
 /**
  * Fetch basic repo metadata (owner, name, language, stars, description).
  * Call this right after the user pastes a GitHub URL.
+ * Goes through our own /api/repo/info proxy route (attaches JWT server-side).
  */
 export async function getRepoInfo(repoUrl: string): Promise<RepoInfoResponse> {
-  const res = await fetch(`${API_BASE}/api/repo/info`, {
+  const res = await fetch(`/api/repo/info`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_url: repoUrl }),
@@ -38,22 +39,27 @@ export async function getRepoInfo(repoUrl: string): Promise<RepoInfoResponse> {
 
 /**
  * Index a GitHub repository into Pinecone for semantic search.
- * Call this once per repo before chatting (agent tools rely on it).
+ * Called from the BullMQ worker (no browser/cookie context there), so it
+ * takes an already-captured JWT and calls ai-services directly.
  */
-export async function indexRepository(repoUrl: string): Promise<IndexRepoResponse> {
-  const res = await fetch(`${API_BASE}/api/repo/index`, {
+export async function indexRepository(repoUrl: string, token: string, force = false): Promise<IndexRepoResponse> {
+  const res = await fetch(`${WORKER_AI_SERVICE_URL}/api/repo/index`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ repo_url: repoUrl }),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ repo_url: repoUrl, force }),
   });
   return handle(res, "Failed to index repository");
 }
 
 /**
  * Get the file/folder tree of a repo (for the file-tree side panel).
+ * Goes through our own /api/repo/tree proxy route (attaches JWT server-side).
  */
 export async function getRepositoryTree(repoUrl: string): Promise<RepoTreeResponse> {
-  const res = await fetch(`${API_BASE}/api/repo/tree`, {
+  const res = await fetch(`/api/repo/tree`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_url: repoUrl }),
@@ -65,6 +71,8 @@ export async function getRepositoryTree(repoUrl: string): Promise<RepoTreeRespon
  * Ask the RepoBrain agent a question about a repo.
  * threadId keeps conversation memory across turns (Postgres-backed).
  * repoId is your app's internal repo id (e.g. Prisma record id).
+ * Goes through our own /api/agent/chat proxy route (attaches JWT server-side) —
+ * user identity now comes from the verified JWT, not the request body.
  */
 export async function askAgent(
   repoUrl: string,
@@ -72,7 +80,7 @@ export async function askAgent(
   threadId: string,
   repoId: string
 ): Promise<AgentChatResponse> {
-  const res = await fetch(`${API_BASE}/agent/chat`, {
+  const res = await fetch(`/api/agent/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -162,7 +170,7 @@ export async function streamAgent(
   handlers: StreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/agent/chat`, {
+  const res = await fetch(`/api/agent/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

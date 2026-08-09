@@ -9,7 +9,6 @@ import { TypingIndicator } from "./chat/typing-indicator";
 import { ChatInput } from "./chat/chat-input";
 import { streamAgent, getSessionMessages, getSessions } from "@/lib/api";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
-import { useSession } from "@/lib/auth-client";
 
 let messageIdCounter = 0;
 
@@ -28,7 +27,6 @@ export function ChatArea({
   const setSessions      = useDashboardStore((s) => s.setSessions);
   const pushToolStatus   = useDashboardStore((s) => s.pushToolStatus);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
-  const { data: authSession } = useSession();
 
   const [messages,      setMessages]      = useState<Message[]>([]);
   const [input,         setInput]         = useState("");
@@ -138,9 +136,8 @@ export function ChatArea({
 
       const threadId = activeSession || "default";
       const repoId = repo ? `${repo.owner}/${repo.name}` : "unknown";
-      const userId = authSession?.user?.id ?? "anonymous";
 
-      await streamAgent(repoUrl, text, threadId, repoId, userId, {
+      await streamAgent(repoUrl, text, threadId, repoId, {
         onToolCall: (toolName) => {
           pushLocalToolStatus(toolName, "calling");
         },

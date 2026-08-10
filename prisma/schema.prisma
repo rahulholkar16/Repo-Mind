@@ -21,8 +21,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  // A user can connect and index multiple repos.
-  repos         Repo[]
+  repos Repo[]
 
   @@unique([email])
   @@map("user")
@@ -77,27 +76,27 @@ model Verification {
 }
 
 model Repo {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   userId        String
   repoUrl       String
   owner         String
   name          String
   languages     String[]
-  stars         Int       @default(0)
+  stars         Int      @default(0)
   description   String?
   githubId      String
-  forks         Int       @default(0)
-  isPrivate     Boolean   @default(false)
-  defaultBranch String    @default("main")
+  forks         Int      @default(0)
+  isPrivate     Boolean  @default(false)
+  defaultBranch String   @default("main")
 
-  isIndexed     Boolean   @default(false)
-  indexedAt     DateTime?
+  isIndexed Boolean   @default(false)
+  indexedAt DateTime?
 
-  createdAt     DateTime  @default(now())
-  lastUsedAt    DateTime  @default(now())
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
 
-  ChatSessions  ChatSession[]
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ChatSessions ChatSession[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // One user can reconnect the same GitHub repo without conflicting with
   // another user who has also connected it — uniqueness is per-user, not
@@ -107,16 +106,16 @@ model Repo {
 }
 
 model ChatSession {
-  id        String    @id     @default(uuid())
-  repoId    String
-  threadId  String    @unique @default(dbgenerated("gen_random_uuid()"))
-  title     String
+  id       String @id @default(uuid())
+  repoId   String
+  threadId String @unique @default(dbgenerated("gen_random_uuid()"))
+  title    String
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages  Message[]
-  repo      Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  messages Message[]
+  repo     Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
 
   @@index([repoId])
   @@map("chat_sessions")
@@ -129,15 +128,25 @@ enum ROLE {
 }
 
 model Message {
-  id        String     @id  @default(uuid())
+  id        String   @id @default(uuid())
   sessionId String
   role      ROLE
   content   String
   toolCalls Json?
-  createdAt DateTime    @default(now())
+  createdAt DateTime @default(now())
 
-  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@map("messages")
+}
+
+model Jwks {
+  id         String    @id
+  publicKey  String
+  privateKey String
+  createdAt  DateTime
+  expiresAt  DateTime?
+
+  @@map("jwks")
 }

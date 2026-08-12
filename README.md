@@ -16,6 +16,8 @@ Use the dashboard to connect a repository, follow indexing progress, and review 
 
 Keep the frontend and backend services running together when testing repository indexing or chat flows.
 
+Use `npm run lint` before sharing changes that touch UI or routing behavior.
+
 ## Environment
 
 Set `NEXT_PUBLIC_API_URL` when the frontend should call a deployed backend instead of a local service.

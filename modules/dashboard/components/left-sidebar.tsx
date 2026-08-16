@@ -9,11 +9,21 @@ import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import type { RepoInfo, LeftSidebarProps } from "@/types";
 import { RepoConnect } from "./sidebar/repo-connect";
+import { BranchSelectDialog } from "./sidebar/branch-select-dialog";
 import { SessionHistory } from "./sidebar/session-history";
 import { useDashboardStore } from "@/modules/dashboard/store/use-dashboard-store";
-import { getRepoInfo, indexRepository, getRepositoryTree, getSessions, connectRepoRecord, createNewSession } from "@/lib/api";
+import { getRepositoryTree, getSessions, connectRepoRecord, createNewSession } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import pollIndexJob from "@/modules/dashboard/utils/poll-index-job";
+import { parseRepoUrl } from "@/modules/dashboard/utils/parse-repo-url";
+import type { RepoBranch, RepoInfoResponse } from "@/types";
+
+interface PendingRepo {
+  url: string;
+  owner: string;
+  name: string;
+  repoInfo: RepoInfoResponse | null;
+}
 
 export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = false, onClose, showCollapseToggle = false, onToggleCollapse }: LeftSidebarProps) {
   const router = useRouter();
@@ -25,86 +35,109 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
   const addSession       = useDashboardStore((s) => s.addSession);
   const setSessions      = useDashboardStore((s) => s.setSessions);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
+  const setSelectedBranch = useDashboardStore((s) => s.setSelectedBranch);
 
   const [urlInput,   setUrlInput]   = useState("");
   const [connecting, setConnecting] = useState(false);
   const [reindexing, setReindexing] = useState(false);
 
-  // Hydrate session history from Postgres (via Prisma) on load, so past
-  // conversations are still there after a refresh.
+  const [branchDialogOpen, setBranchDialogOpen] = useState(false);
+  const [branches, setBranches]           = useState<RepoBranch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [pendingRepo, setPendingRepo] = useState<PendingRepo | null>(null);
+
   useEffect(() => {
     getSessions()
       .then(setSessions)
       .catch((e) => console.warn("Could not load session history:", e));
   }, [setSessions]);
 
-  async function handleConnect() {
+  // Step 1: user submits a repo URL — fetch its branches and open the
+  // picker. The actual connect (indexing, DB record, etc.) only happens
+  // once they pick a branch, in finalizeConnect below.
+  async function openBranchPicker() {
     if (connecting || !urlInput.trim()) return;
+
+    const parsed = parseRepoUrl(urlInput);
+    if (!parsed) {
+      toast.error("Invalid repository path. Use format: owner/name");
+      return;
+    }
+    const { owner, name, repoUrl } = parsed;
+
+    setPendingRepo({ url: repoUrl, owner, name, repoInfo: null });
+    setBranches([]);
+    setBranchesLoading(true);
+    setBranchDialogOpen(true);
+
+    try {
+      const res = await fetch(`/api/github/branches?repo_url=${encodeURIComponent(repoUrl)}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.detail || "Failed to fetch branches");
+      }
+      setBranches(data.branches);
+      // Reuse the repo info fetched alongside branches — avoids fetching
+      // it again once the branch is picked.
+      setPendingRepo((prev) => (prev ? { ...prev, repoInfo: data.repoInfo ?? null } : prev));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to fetch branches";
+      toast.error(message);
+      setBranchDialogOpen(false);
+      setPendingRepo(null);
+    } finally {
+      setBranchesLoading(false);
+    }
+  }
+
+  // Fetch Repo Tree 
+  async function fetchFileTree(repoUrl: string) {
+    try {
+      const treeRes = await getRepositoryTree(repoUrl);
+      return treeRes.tree;
+    } catch (e) {
+      console.error("Failed to fetch file tree:", e);
+      return undefined;
+    }
+  }
+
+  // Queues indexing and waits for it to finish, returning the chunk count.
+  async function indexAndWait(repoUrl: string): Promise<number | undefined> {
+    const enqueueRes = await fetch("/api/index-repo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_url: repoUrl }),
+    });
+    if (!enqueueRes.ok) {
+      throw new Error("Failed to queue repository indexing");
+    }
+
+    const { jobId } = await enqueueRes.json();
+    const indexRes = await pollIndexJob(jobId);
+    return typeof indexRes?.total_chunks === "number" ? indexRes.total_chunks : undefined;
+  }
+
+  // Step 2: user picked a branch — actually connect the repo (index it,
+  // fetch its tree, persist the record, start the first chat session).
+  async function finalizeConnect(branchName: string) {
+    if (!pendingRepo) return;
+    const { url: repoUrl, owner, name, repoInfo } = pendingRepo;
+    setSelectedBranch(branchName);
+    setPendingRepo(null);
     setConnecting(true);
 
     try {
-      // Normalize URL and extract owner/repo
-      let cleaned = urlInput.trim()
-        .replace(/^https?:\/\/github\.com\//, "")
-        .replace(/^github\.com\//, "");
-      // Remove trailing slash or .git
-      cleaned = cleaned.replace(/\.git$/, "").replace(/\/$/, "");
-
-      const parts = cleaned.split("/");
-      if (parts.length < 2) {
-        throw new Error("Invalid repository path. Use format: owner/name");
-      }
-      const owner = parts[0];
-      const name = parts[1];
-      const repoUrl = `https://github.com/${owner}/${name}`;
-
-      // 1. Fetch repo metadata via our backend (uses a GitHub token, avoids
-      //    the frontend hitting GitHub's public rate limit directly)
-      let repoData: RepoInfo = {
+      const repoData: RepoInfo = {
         owner,
         name,
-        language: "Unknown",
-        stars: 0,
-        description: "",
+        language: repoInfo?.language ?? "Unknown",
+        stars: repoInfo?.stars ?? 0,
+        description: repoInfo?.description ?? "",
       };
 
-      try {
-        const info = await getRepoInfo(repoUrl);
-        repoData = { ...repoData, ...info };
-      } catch (e) {
-        console.warn("Could not fetch repo info, using fallbacks:", e);
-      }
+      repoData.fileTree = await fetchFileTree(repoUrl);
+      repoData.indexedChunks = await indexAndWait(repoUrl);
 
-      // 2. Fetch the file tree for the right panel
-      try {
-        const treeRes = await getRepositoryTree(repoUrl);
-        repoData.fileTree = treeRes.tree;
-      } catch (e) {
-        console.error("Failed to fetch file tree:", e);
-      }
-
-      // 3. Index the repository (RepoBrain V2 reads files via the GitHub
-      //    API directly — there is no separate clone step)
-      const enqueRes = await fetch("/api/index-repo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: repoUrl })
-      });
-
-      if (!enqueRes.ok) {
-          throw new Error("Failed to queue repository indexing");
-      }
-
-      const { jobId } = await enqueRes.json();
-      const indexRes = await pollIndexJob(jobId);
-      if (indexRes && typeof indexRes.total_chunks === "number") {
-          repoData.indexedChunks = indexRes.total_chunks;
-      }
-
-      // 4. Persist the repo + its first chat session to Postgres (Prisma),
-      //    scoped to the logged-in user, and use the server-issued
-      //    threadId — this is the same id ai-services will save messages
-      //    under, so history round-trips correctly.
       const { repo, session } = await connectRepoRecord({
         repoUrl,
         owner,
@@ -246,11 +279,22 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
           urlInput={urlInput}
           setUrlInput={setUrlInput}
           connecting={connecting}
-          onConnect={handleConnect}
+          onConnect={openBranchPicker}
           connectedRepo={connectedRepo}
           isTablet={isTablet}
           reindexing={reindexing}
           onReindex={handleReindex}
+        />
+
+        <BranchSelectDialog
+          open={branchDialogOpen}
+          onOpenChange={(open) => {
+            setBranchDialogOpen(open);
+            if (!open) setPendingRepo(null);
+          }}
+          branches={branches}
+          loading={branchesLoading}
+          onSelect={finalizeConnect}
         />
 
         <SessionHistory
@@ -289,6 +333,10 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
         >
           <LogOut size={12} /> Sign Out
         </Button>
+
+        <div className="text-center font-mono text-[10px] text-muted-foreground pt-1">
+          Made by Rahul
+        </div>
       </div>
     </div>
   );

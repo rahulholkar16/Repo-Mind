@@ -45,6 +45,7 @@ export interface RepoInfoResponse {
   language: string;
   stars: number;
   description: string;
+  default_branch: string;
 }
 
 export interface RepoTreeResponse {
@@ -61,4 +62,15 @@ export interface IndexRepoResponse {
 export interface ConnectRepoResponse {
   repo: { id: string; owner: string; name: string };
   session: { id: string; threadId: string; title: string };
+}
+
+export interface RepoBranch {
+  name: string;
+  isDefault: boolean;
+}
+
+export interface RepoBranchesResponse {
+  branches: RepoBranch[];
+  defaultBranch: string;
+  repoInfo: RepoInfoResponse;
 }

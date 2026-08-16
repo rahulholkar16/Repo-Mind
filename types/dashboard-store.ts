@@ -7,6 +7,10 @@ export interface DashboardState {
   connectedRepo: RepoInfo | null;
   setConnectedRepo: (repo: RepoInfo | null) => void;
 
+  // ── Branch selected for the currently connecting/connected repo ──
+  selectedBranch: string | null;
+  setSelectedBranch: (branch: string | null) => void;
+
   // ── Chat sessions ──
   activeSession: string;
   setActiveSession: (id: string) => void;

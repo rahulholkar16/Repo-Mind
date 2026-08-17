@@ -1,4 +1,4 @@
-import type { RepoInfo } from "./repo";
+import type { RepoInfo, RepoBranch } from "./repo";
 import type { Session } from "./session";
 import type { ToolCall } from "./chat";
 
@@ -91,4 +91,12 @@ export interface LandingProps {
   onEnterApp: () => void;
   isDark: boolean;
   setIsDark: (v: boolean) => void;
+}
+
+export interface BranchSelectDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  branches: RepoBranch[];
+  loading: boolean;
+  onSelect: (branchName: string) => void;
 }

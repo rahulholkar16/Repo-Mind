@@ -97,10 +97,7 @@ model Repo {
 
   ChatSessions ChatSession[]
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // One user can reconnect the same GitHub repo without conflicting with
-  // another user who has also connected it — uniqueness is per-user, not
-  // global (githubId alone is no longer @unique).
+  
   @@unique([userId, githubId])
   @@index([userId])
 }

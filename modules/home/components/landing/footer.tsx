@@ -50,7 +50,7 @@ export function Footer({ isDark }: { isDark: boolean }) {
         </div>
 
         <div style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <span style={{ ...sans, fontSize: 13, color: C.MUTED }}>© 2025 RepoBrain, Inc. All rights reserved.</span>
+          <span style={{ ...sans, fontSize: 13, color: C.MUTED }}>© 2025 RepoBrain, Inc. All rights reserved. · Made by Rahul</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E" }} />
             <span style={{ ...mono, fontSize: 11, color: C.MUTED }}>All systems operational</span>

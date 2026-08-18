@@ -2,6 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 RepoMind is a frontend workspace for exploring repositories, starting indexing jobs, and chatting with code context from a connected backend.
 
+## Features
+
+- Connect GitHub repositories for indexing.
+- Track repository processing status from the dashboard.
+- Ask questions against indexed code context.
+
 ## Project Notes
 
 Use the dashboard to connect a repository, follow indexing progress, and review chat responses alongside repo context.

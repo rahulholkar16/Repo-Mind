@@ -12,6 +12,8 @@ RepoMind is a frontend workspace for exploring repositories, starting indexing j
 
 Use the dashboard to connect a repository, follow indexing progress, and review chat responses alongside repo context.
 
+Dashboard chat works best after indexing has completed for the selected repository branch.
+
 ## Scripts
 
 - `npm run dev` starts the local development server.

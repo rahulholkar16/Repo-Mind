@@ -18,6 +18,10 @@ Use the dashboard to connect a repository, follow indexing progress, and review 
 - `npm run build` creates a production build.
 - `npm run lint` runs ESLint checks.
 
+## Requirements
+
+Use Node.js with the package manager already locked in this repository before running local scripts.
+
 ## Local Development
 
 Keep the frontend and backend services running together when testing repository indexing or chat flows.

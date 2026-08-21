@@ -35,6 +35,10 @@ Use `npm run lint` before sharing changes that touch UI or routing behavior.
 
 Set `NEXT_PUBLIC_API_URL` when the frontend should call a deployed backend instead of a local service.
 
+## Troubleshooting
+
+If indexing status does not update, confirm the backend and worker services are both running.
+
 ## Getting Started
 
 First, run the development server:

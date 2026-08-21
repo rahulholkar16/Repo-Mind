@@ -7,6 +7,7 @@ RepoMind is a frontend workspace for exploring repositories, starting indexing j
 - Connect GitHub repositories for indexing.
 - Track repository processing status from the dashboard.
 - Ask questions against indexed code context.
+- Select repository branches before starting an indexing run.
 
 ## Project Notes
 

@@ -32,6 +32,8 @@ Keep the frontend and backend services running together when testing repository 
 
 Use `npm run lint` before sharing changes that touch UI or routing behavior.
 
+Run the frontend from the repository root so the configured environment and scripts are resolved consistently.
+
 ## Environment
 
 Set `NEXT_PUBLIC_API_URL` when the frontend should call a deployed backend instead of a local service.

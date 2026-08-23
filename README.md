@@ -16,6 +16,8 @@ Use the dashboard to connect a repository, follow indexing progress, and review 
 
 Dashboard chat works best after indexing has completed for the selected repository branch.
 
+Choose the branch that contains the code context you want to explore before starting a run.
+
 ## Scripts
 
 - `npm run dev` starts the local development server.

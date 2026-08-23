@@ -44,6 +44,8 @@ Set `NEXT_PUBLIC_API_URL` when the frontend should call a deployed backend inste
 
 If indexing status does not update, confirm the backend and worker services are both running.
 
+If chat has no useful context, verify that indexing completed for the selected branch.
+
 ## Getting Started
 
 First, run the development server:

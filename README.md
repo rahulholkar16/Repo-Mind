@@ -28,6 +28,12 @@ RepoMind is a Next.js frontend for connecting GitHub repositories, starting inde
 
 Run commands from the repository root so the configured environment and scripts resolve consistently.
 
+Create a local environment file from the tracked example before starting services.
+
+```bash
+cp .env.example .env
+```
+
 ```bash
 npm run dev
 ```
@@ -40,7 +46,7 @@ Keep the frontend and backend services running together when testing repository 
 
 Set `NEXT_PUBLIC_API_URL` when the frontend should call a deployed backend instead of a local service.
 
-Server-side routes and workers also use service, database, auth, and Redis environment variables. Keep local secrets in `.env`.
+Server-side routes and workers also use service, database, auth, and Redis environment variables. Keep local secrets in `.env`, and update `.env.example` when adding a new required variable.
 
 ## Troubleshooting
 

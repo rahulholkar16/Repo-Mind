@@ -77,8 +77,6 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
         throw new Error(data?.detail || "Failed to fetch branches");
       }
       setBranches(data.branches);
-      // Reuse the repo info fetched alongside branches — avoids fetching
-      // it again once the branch is picked.
       setPendingRepo((prev) => (prev ? { ...prev, repoInfo: data.repoInfo ?? null } : prev));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to fetch branches";

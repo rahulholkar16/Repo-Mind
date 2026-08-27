@@ -52,9 +52,7 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
       .catch((e) => console.warn("Could not load session history:", e));
   }, [setSessions]);
 
-  // Step 1: user submits a repo URL — fetch its branches and open the
-  // picker. The actual connect (indexing, DB record, etc.) only happens
-  // once they pick a branch, in finalizeConnect below.
+  
   async function openBranchPicker() {
     if (connecting || !urlInput.trim()) return;
 

@@ -113,8 +113,7 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
     return typeof indexRes?.total_chunks === "number" ? indexRes.total_chunks : undefined;
   }
 
-  // Step 2: user picked a branch — actually connect the repo (index it,
-  // fetch its tree, persist the record, start the first chat session).
+  
   async function finalizeConnect(branchName: string) {
     if (!pendingRepo) return;
     const { url: repoUrl, owner, name, repoInfo } = pendingRepo;

@@ -40,8 +40,6 @@ export function DashboardPage() {
   }, [session, router]);
 
   const { resolvedTheme, setTheme } = useTheme();
-  // resolvedTheme is undefined until next-themes has resolved on the client;
-  // default to dark (matches ThemeProvider's defaultTheme) until then.
   const isDark = resolvedTheme ? resolvedTheme === "dark" : true;
   const setIsDark = (v: boolean) => setTheme(v ? "dark" : "light");
 
@@ -51,22 +49,17 @@ export function DashboardPage() {
   const isTablet  = width >= 768 && width < 1024;
   const isDesktop = width >= 1024;
 
-  // Dashboard-wide state (connected repo, active session, live tool
-  // activity) now lives in Zustand — components read/write it directly
-  // instead of receiving it via props.
   const activeSession    = useDashboardStore((s) => s.activeSession);
   const setActiveSession = useDashboardStore((s) => s.setActiveSession);
 
   useEffect(() => {
-    // Seed the first session id once we're on the client.
     if (!activeSession) setActiveSession(safeRandomUUID());
   }, [activeSession, setActiveSession]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightOpen,   setRightOpen]   = useState(false);
+  const hasDrawerOpen = !isDesktop && (sidebarOpen || rightOpen);
 
-  // Persistent (tablet/desktop) collapse state for the left + right panels —
-  // distinct from the mobile/tablet drawer open/close state above.
   const leftPanelRef  = usePanelRef();
   const rightPanelRef = usePanelRef();
   const [leftCollapsed,  setLeftCollapsed]  = useState(false);
@@ -83,17 +76,11 @@ export function DashboardPage() {
     if (panel.isCollapsed()) panel.expand(); else panel.collapse();
   };
 
-  /* Close drawers when resizing to desktop */
-  useEffect(() => {
-    if (isDesktop) { setSidebarOpen(false); setRightOpen(false); }
-  }, [isDesktop]);
-
   /* Lock body scroll when a drawer is open on mobile/tablet */
   useEffect(() => {
-    document.body.style.overflow =
-      (isMobile || isTablet) && (sidebarOpen || rightOpen) ? "hidden" : "";
+    document.body.style.overflow = hasDrawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [isMobile, isTablet, sidebarOpen, rightOpen]);
+  }, [hasDrawerOpen]);
 
   const sidebarWidth = isMobile ? 280 : isTablet ? 256 : 280;
   const rightWidth   = isDesktop ? 304 : 300;
@@ -132,7 +119,7 @@ export function DashboardPage() {
 
       {/* Drawer backdrop */}
       <AnimatePresence>
-        {(sidebarOpen || rightOpen) && (
+        {hasDrawerOpen && (
           <motion.div
             key="bd"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

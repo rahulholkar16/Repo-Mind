@@ -6,7 +6,6 @@ async function pollIndexJob(jobId: string): Promise<IndexRepoResponse> {
         if (!res.ok) throw new Error("Failed to check indexing status");
 
         const data = await res.json();
-        console.log(data.state);
         if (data.state === "completed") {
             return data.result;
         }

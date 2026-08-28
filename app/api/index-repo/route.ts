@@ -8,13 +8,13 @@ export async function POST (req: NextRequest) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { repo_url, force } = await req.json();
+    const { repo_url, branch, force } = await req.json();
 
     if (!repo_url) return NextResponse.json({ 
         error: "Repo Url missing."
     }, { status: 400 });
 
-    const job = await indexingQueue.add("index-repo", { repo_url, force: !!force, token });
+    const job = await indexingQueue.add("index-repo", { repo_url, branch, force: !!force, token });
 
     return NextResponse.json({ jobId: job.id, status: "queued" });
 }

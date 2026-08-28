@@ -4,8 +4,9 @@ import type { IndexRepoResponse, IndexingJobData } from "@/types";
 export const processIndexing = async (
     data: IndexingJobData,
 ): Promise<IndexRepoResponse> => {
-    console.log(`Indexing started for: ${data.repo_url}${data.force ? " (force re-index)" : ""}`);
-    const result = await indexRepository(data.repo_url, data.token, data.force ?? false);
+    const branchLabel = data.branch ? ` [${data.branch}]` : "";
+    console.log(`Indexing started for: ${data.repo_url}${branchLabel}${data.force ? " (force re-index)" : ""}`);
+    const result = await indexRepository(data.repo_url, data.token, data.force ?? false, data.branch);
     console.log(`Indexing done for: ${data.repo_url}`);
     return result;
 };

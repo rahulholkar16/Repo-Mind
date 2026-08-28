@@ -22,11 +22,12 @@ export function ChatArea({
   showLeftCollapseToggle, leftCollapsed, onToggleLeftPanel,
   showRightCollapseToggle, rightCollapsed, onToggleRightPanel,
 }: ChatAreaProps) {
-  const repo            = useDashboardStore((s) => s.connectedRepo);
+  const repo             = useDashboardStore((s) => s.connectedRepo);
   const activeSession    = useDashboardStore((s) => s.activeSession);
   const setSessions      = useDashboardStore((s) => s.setSessions);
   const pushToolStatus   = useDashboardStore((s) => s.pushToolStatus);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
+  const branch           = useDashboardStore((s) => s.selectedBranch);
 
   const [messages,      setMessages]      = useState<Message[]>([]);
   const [input,         setInput]         = useState("");
@@ -136,27 +137,36 @@ export function ChatArea({
 
       const threadId = activeSession || "default";
       const repoId = repo ? `${repo.owner}/${repo.name}` : "unknown";
+      const branchName = branch ?? "main";
 
-      await streamAgent(repoUrl, text, threadId, repoId, {
-        onToolCall: (toolName) => {
-          pushLocalToolStatus(toolName, "calling");
+      await streamAgent(
+        repoUrl,
+        text,
+        threadId,
+        repoId,
+        branchName,
+        {
+          onToolCall: (toolName) => {
+            pushLocalToolStatus(toolName, "calling");
+          },
+          onToolResult: (toolName) => {
+            pushLocalToolStatus(toolName, "done");
+          },
+          onChunk: (chunk) => {
+            receivedAnyChunk = true;
+            accumulatedContent += chunk;
+            updateAgentMessage({ content: accumulatedContent, toolCalls: undefined });
+          },
+          onDone: () => {
+            // Nothing more to do here — typing indicator stops in `finally`.
+          },
+          onError: (message) => {
+            toast.error(message);
+            setMessages((prev) => prev.filter((m) => m.id !== agentMsgId));
+          },
         },
-        onToolResult: (toolName) => {
-          pushLocalToolStatus(toolName, "done");
-        },
-        onChunk: (chunk) => {
-          receivedAnyChunk = true;
-          accumulatedContent += chunk;
-          updateAgentMessage({ content: accumulatedContent, toolCalls: undefined });
-        },
-        onDone: () => {
-          // Nothing more to do here — typing indicator stops in `finally`.
-        },
-        onError: (message) => {
-          toast.error(message);
-          setMessages(prev => prev.filter(m => m.id !== agentMsgId));
-        },
-      }, abortController.signal);
+        abortController.signal,
+      );
 
       if (!receivedAnyChunk) {
         updateAgentMessage({ content: "The agent didn't return a response. Please try again.", toolCalls: undefined });
@@ -174,7 +184,7 @@ export function ChatArea({
       setIsTyping(false);
       getSessions().then(setSessions).catch(() => {});
     }
-  }, [isTyping, repo, activeSession, setSessions, pushToolStatus, resetLiveTools]);
+  }, [isTyping, repo, activeSession, branch, setSessions, pushToolStatus, resetLiveTools]);
 
   async function handleSend() {
     if (!input.trim() || isTyping) return;

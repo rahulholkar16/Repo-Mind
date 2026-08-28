@@ -42,14 +42,19 @@ export async function getRepoInfo(repoUrl: string): Promise<RepoInfoResponse> {
  * Called from the BullMQ worker (no browser/cookie context there), so it
  * takes an already-captured JWT and calls ai-services directly.
  */
-export async function indexRepository(repoUrl: string, token: string, force = false): Promise<IndexRepoResponse> {
+export async function indexRepository(
+  repoUrl: string,
+  token: string,
+  force = false,
+  branch?: string
+): Promise<IndexRepoResponse> {
   const res = await fetch(`${WORKER_AI_SERVICE_URL}/api/repo/index`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify({ repo_url: repoUrl, force }),
+    body: JSON.stringify({ repo_url: repoUrl, force, branch }),
   });
   return handle(res, "Failed to index repository");
 }
@@ -167,6 +172,7 @@ export async function streamAgent(
   question: string,
   threadId: string,
   repoId: string,
+  branch: string,
   handlers: StreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
@@ -181,6 +187,7 @@ export async function streamAgent(
       question,
       thread_id: threadId,
       repo_id: repoId,
+      branch,
     }),
     signal,
   });

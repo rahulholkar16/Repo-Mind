@@ -35,6 +35,7 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
   const addSession       = useDashboardStore((s) => s.addSession);
   const setSessions      = useDashboardStore((s) => s.setSessions);
   const resetLiveTools   = useDashboardStore((s) => s.resetLiveTools);
+  const selectedBranch   = useDashboardStore((s) => s.selectedBranch);
   const setSelectedBranch = useDashboardStore((s) => s.setSelectedBranch);
 
   const [urlInput,   setUrlInput]   = useState("");
@@ -98,11 +99,11 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
   }
 
   // Queues indexing and waits for it to finish, returning the chunk count.
-  async function indexAndWait(repoUrl: string): Promise<number | undefined> {
+  async function indexAndWait(repoUrl: string, branchName?: string): Promise<number | undefined> {
     const enqueueRes = await fetch("/api/index-repo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repo_url: repoUrl }),
+      body: JSON.stringify({ repo_url: repoUrl, branch: branchName }),
     });
     if (!enqueueRes.ok) {
       throw new Error("Failed to queue repository indexing");
@@ -131,7 +132,7 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
       };
 
       repoData.fileTree = await fetchFileTree(repoUrl);
-      repoData.indexedChunks = await indexAndWait(repoUrl);
+      repoData.indexedChunks = await indexAndWait(repoUrl, branchName);
 
       const { repo, session } = await connectRepoRecord({
         repoUrl,
@@ -167,7 +168,7 @@ export function LeftSidebar({ isDark, setIsDark, isMobile = false, isTablet = fa
       const enqueRes = await fetch("/api/index-repo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: repoUrl, force: true }),
+        body: JSON.stringify({ repo_url: repoUrl, branch: selectedBranch ?? undefined, force: true }),
       });
 
       if (!enqueRes.ok) {

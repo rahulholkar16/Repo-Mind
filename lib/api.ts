@@ -155,8 +155,6 @@ export async function createNewSession(repoId: string): Promise<NewSessionRespon
 
 /**
  * Renames a session — used to auto-title a chat from its first message,
- * the same way ChatGPT/Claude do it. Fire-and-forget from the UI's
- * perspective; callers can ignore the resolved value.
  */
 export async function renameSession(threadId: string, title: string): Promise<void> {
   const res = await fetch("/api/sessions/title", {

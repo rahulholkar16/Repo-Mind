@@ -165,6 +165,35 @@ export async function renameSession(threadId: string, title: string): Promise<vo
   await handle(res, "Failed to rename session");
 }
 
+/**
+ * Confirms a pending PR proposal for a thread — actually creates the PR on
+ * GitHub. Goes through /api/pr/confirm (attaches JWT server-side).
+ */
+export async function confirmPr(
+  threadId: string,
+  overrides?: { title?: string; body?: string }
+): Promise<{ success: boolean; pr_url?: string; pr_number?: number; error?: string }> {
+  const res = await fetch("/api/pr/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ thread_id: threadId, title: overrides?.title, body: overrides?.body }),
+  });
+  return handle(res, "Failed to confirm PR");
+}
+
+/**
+ * Cancels a pending PR proposal for a thread — no PR is created.
+ * Goes through /api/pr/reject (attaches JWT server-side).
+ */
+export async function rejectPr(threadId: string): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch("/api/pr/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ thread_id: threadId }),
+  });
+  return handle(res, "Failed to reject PR");
+}
+
 export async function streamAgent(
   repoUrl: string,
   question: string,
@@ -223,6 +252,12 @@ export async function streamAgent(
       handlers.onToolCall(data);
     } else if (eventType === "tool_result") {
       handlers.onToolResult(data);
+    } else if (eventType === "pr_proposal") {
+      try {
+        handlers.onPrProposal(JSON.parse(data));
+      } catch (e) {
+        console.error("Failed to parse pr_proposal event:", e);
+      }
     } else {
       handlers.onChunk(data);
     }

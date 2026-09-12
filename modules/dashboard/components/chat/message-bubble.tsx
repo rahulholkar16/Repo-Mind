@@ -4,9 +4,40 @@ import type { Message  } from "@/types";
 import { ToolRow } from "./tool-row";
 import { CodeBlock } from "./code-block";
 import { MarkdownRenderer } from "./markdown-renderer";
+import { PrProposalCard } from "./pr-proposal-card";
 
-export function MessageBubble({ msg, index, isMobile }: { msg: Message; index: number; isMobile?: boolean }) {
+export function MessageBubble({
+  msg, index, isMobile, threadId, onPrStatusChange,
+}: {
+  msg: Message;
+  index: number;
+  isMobile?: boolean;
+  threadId?: string;
+  onPrStatusChange?: (messageId: string, status: "confirmed" | "rejected") => void;
+}) {
   const isUser = msg.role === "user";
+
+  if (msg.role === "agent" && msg.prProposal && threadId) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.045, duration: 0.25 }}
+        style={{ display: "flex", alignItems: "flex-start", gap: 10 }}
+      >
+        <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--rb-agent-avatar-bg)", border: "1px solid var(--rb-agent-avatar-border)" }}>
+          <Bot size={12} style={{ color: "var(--muted-foreground)" }} />
+        </div>
+        <PrProposalCard
+          proposal={msg.prProposal}
+          threadId={threadId}
+          status={msg.prStatus ?? "pending"}
+          initialResult={msg.prResult}
+          onStatusChange={(status) => onPrStatusChange?.(msg.id, status)}
+        />
+      </motion.div>
+    );
+  }
 
   if (msg.role === "agent" && msg.toolCalls?.length && !msg.content) {
     return (

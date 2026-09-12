@@ -75,6 +75,9 @@ export function ChatArea({
             role: m.role,
             content: m.content,
             timestamp: now,
+            prProposal: m.prProposal,
+            prStatus: m.prStatus,
+            prResult: m.prResult,
           }))
         );
       })
@@ -92,6 +95,10 @@ export function ChatArea({
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 100);
+  }
+
+  function handlePrStatusChange(messageId: string, status: "confirmed" | "rejected") {
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, prStatus: status } : m)));
   }
 
   const submitMessage = useCallback(async (text: string) => {
@@ -115,6 +122,7 @@ export function ChatArea({
     let receivedAnyChunk = false;
     let accumulatedContent = "";
     const activeTools = new Map<string, { name: string; args?: string }>();
+    let proposalMessageAdded = false;
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -152,6 +160,17 @@ export function ChatArea({
           onToolResult: (toolName) => {
             pushLocalToolStatus(toolName, "done");
           },
+          onPrProposal: (proposal) => {
+            // The proposal arrives alongside the tool call/result events;
+            // give it its own message so the confirm/reject card renders
+            // instead of the generic tool bubble.
+            proposalMessageAdded = true;
+            setMessages((prev) => prev.map((m) =>
+              m.id === agentMsgId
+                ? { ...m, content: "", toolCalls: undefined, prProposal: proposal, prStatus: "pending" }
+                : m
+            ));
+          },
           onChunk: (chunk) => {
             receivedAnyChunk = true;
             accumulatedContent += chunk;
@@ -168,7 +187,7 @@ export function ChatArea({
         abortController.signal,
       );
 
-      if (!receivedAnyChunk) {
+      if (!receivedAnyChunk && !proposalMessageAdded) {
         updateAgentMessage({ content: "The agent didn't return a response. Please try again.", toolCalls: undefined });
       }
     } catch (err: unknown) {
@@ -232,7 +251,16 @@ export function ChatArea({
         onScroll={handleScroll}
         style={{ flex: 1, overflowY: "auto", padding: isMobile ? "14px 14px" : "22px 24px", display: "flex", flexDirection: "column", gap: isMobile ? 14 : 18 }}
       >
-        {messages.map((msg, i) => <MessageBubble key={msg.id} msg={msg} index={i} isMobile={isMobile} />)}
+        {messages.map((msg, i) => (
+          <MessageBubble
+            key={msg.id}
+            msg={msg}
+            index={i}
+            isMobile={isMobile}
+            threadId={activeSession}
+            onPrStatusChange={handlePrStatusChange}
+          />
+        ))}
         {isTyping && <TypingIndicator />}
       </div>
 

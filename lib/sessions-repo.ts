@@ -39,11 +39,43 @@ export async function getThreadMessagesForUser(
 
   if (!session) return [];
 
-  return session.messages
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({
-      id: m.id,
-      role: m.role === "user" ? "user" : "agent",
-      content: m.content,
-    }));
+  const result: SessionMessage[] = [];
+
+  for (const m of session.messages) {
+    if (m.role === "user" || m.role === "assistant") {
+      result.push({ id: m.id, role: m.role === "user" ? "user" : "agent", content: m.content });
+      continue;
+    }
+
+    if (m.role !== "tool") continue;
+
+    // toolCalls is untyped JSON from the DB — narrow it defensively.
+    const toolCalls = Array.isArray(m.toolCalls) ? m.toolCalls : [];
+    const entry = toolCalls[0] as Record<string, unknown> | undefined;
+    if (!entry) continue;
+
+    if (entry.name === "propose_pull_request" && entry.pr_proposal) {
+      result.push({
+        id: m.id,
+        role: "agent",
+        content: "",
+        prProposal: entry.pr_proposal as SessionMessage["prProposal"],
+        prStatus: "pending",
+      });
+      continue;
+    }
+
+    if (entry.name === "pr_status") {
+      // Resolve the most recent still-pending proposal bubble.
+      const pending = [...result].reverse().find((sm) => sm.prProposal && sm.prStatus === "pending");
+      if (pending) {
+        pending.prStatus = entry.status === "confirmed" ? "confirmed" : "rejected";
+        if (entry.status === "confirmed") {
+          pending.prResult = { pr_url: entry.pr_url as string | undefined, pr_number: entry.pr_number as number | undefined };
+        }
+      }
+    }
+  }
+
+  return result;
 }

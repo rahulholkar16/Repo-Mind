@@ -74,6 +74,29 @@ export async function getThreadMessagesForUser(
           pending.prResult = { pr_url: entry.pr_url as string | undefined, pr_number: entry.pr_number as number | undefined };
         }
       }
+      continue;
+    }
+
+    if (entry.name === "propose_branch" && entry.branch_proposal) {
+      result.push({
+        id: m.id,
+        role: "agent",
+        content: "",
+        branchProposal: entry.branch_proposal as SessionMessage["branchProposal"],
+        branchStatus: "pending",
+      });
+      continue;
+    }
+
+    if (entry.name === "branch_status") {
+      // Resolve the most recent still-pending proposal bubble.
+      const pending = [...result].reverse().find((sm) => sm.branchProposal && sm.branchStatus === "pending");
+      if (pending) {
+        pending.branchStatus = entry.status === "confirmed" ? "confirmed" : "rejected";
+        if (entry.status === "confirmed") {
+          pending.branchResult = { branch: entry.branch as string | undefined, html_url: entry.branch_url as string | undefined };
+        }
+      }
     }
   }
 

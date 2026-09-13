@@ -24,20 +24,33 @@ export function PrProposalCard({ proposal, threadId, status, initialResult, onSt
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(proposal.title);
   const [body, setBody] = useState(proposal.body ?? "");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleConfirm() {
     if (loading) return;
     setLoading("confirm");
+    setErrorMessage(null);
     try {
       const res = await confirmPr(threadId, { title, body });
       if (!res.success) {
-        toast.error(res.error || "Failed to create the PR.");
+        const message = res.error || "Failed to create the PR.";
+        toast.error(message);
+        if (res.retryable === false) {
+          // Backend already cleared the pending proposal for this case (e.g. branch
+          // not pushed, PR already exists) — retrying with the same head/base won't
+          // help, so reflect that in the UI instead of leaving stale Confirm/Cancel buttons.
+          setErrorMessage(message);
+          onStatusChange("rejected");
+          return;
+        }
+        setErrorMessage(message);
         return;
       }
       setResult({ pr_url: res.pr_url, pr_number: res.pr_number });
       onStatusChange("confirmed", res);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to confirm PR.";
+      setErrorMessage(message);
       toast.error(message);
     } finally {
       setLoading(null);
@@ -110,6 +123,23 @@ export function PrProposalCard({ proposal, threadId, status, initialResult, onSt
         )}
       </div>
 
+      {status === "pending" && errorMessage && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "8px 10px",
+            borderRadius: 8,
+            background: "color-mix(in srgb, red 10%, transparent)",
+            border: "1px solid color-mix(in srgb, red 30%, transparent)",
+            color: "var(--destructive, #e5484d)",
+            fontSize: 12.5,
+            lineHeight: 1.4,
+          }}
+        >
+          {errorMessage}
+        </div>
+      )}
+
       {status === "pending" && (
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           {isEditing ? (
@@ -145,7 +175,7 @@ export function PrProposalCard({ proposal, threadId, status, initialResult, onSt
 
       {status === "rejected" && (
         <div style={{ marginTop: 12, fontSize: 13, color: "var(--muted-foreground)" }}>
-          ❌ Proposal cancelled
+          {errorMessage ? `❌ ${errorMessage}` : "❌ Proposal cancelled"}
         </div>
       )}
     </motion.div>

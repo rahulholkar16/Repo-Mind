@@ -11,6 +11,12 @@ export interface PrProposal {
   base: string;
 }
 
+export interface BranchProposal {
+  repo_full_name: string;
+  new_branch: string;
+  source_branch: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "agent";
@@ -21,6 +27,9 @@ export interface Message {
   prProposal?: PrProposal;
   prStatus?: "pending" | "confirmed" | "rejected";
   prResult?: { pr_url?: string; pr_number?: number };
+  branchProposal?: BranchProposal;
+  branchStatus?: "pending" | "confirmed" | "rejected";
+  branchResult?: { branch?: string; html_url?: string };
 }
 
 export interface AgentRequest {
@@ -46,6 +55,8 @@ export interface StreamHandlers {
   onToolResult: (toolName: string) => void;
   /** Called when the agent stages a PR proposal awaiting user confirmation. */
   onPrProposal: (proposal: PrProposal) => void;
+  /** Called when the agent stages a branch-creation proposal awaiting user confirmation. */
+  onBranchProposal: (proposal: BranchProposal) => void;
   onDone: () => void;
   onError: (message: string) => void;
 }

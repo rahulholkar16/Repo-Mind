@@ -172,7 +172,7 @@ export async function renameSession(threadId: string, title: string): Promise<vo
 export async function confirmPr(
   threadId: string,
   overrides?: { title?: string; body?: string }
-): Promise<{ success: boolean; pr_url?: string; pr_number?: number; error?: string }> {
+): Promise<{ success: boolean; pr_url?: string; pr_number?: number; error?: string; retryable?: boolean }> {
   const res = await fetch("/api/pr/confirm", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -192,6 +192,39 @@ export async function rejectPr(threadId: string): Promise<{ success: boolean; me
     body: JSON.stringify({ thread_id: threadId }),
   });
   return handle(res, "Failed to reject PR");
+}
+
+/**
+ * Confirms a pending branch-creation proposal for a thread — actually creates
+ * the branch on GitHub. Goes through /api/branch/confirm (attaches JWT server-side).
+ */
+export async function confirmBranch(
+  threadId: string,
+  overrides?: { new_branch?: string; source_branch?: string }
+): Promise<{ success: boolean; branch?: string; html_url?: string; error?: string; retryable?: boolean }> {
+  const res = await fetch("/api/branch/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      thread_id: threadId,
+      new_branch: overrides?.new_branch,
+      source_branch: overrides?.source_branch,
+    }),
+  });
+  return handle(res, "Failed to confirm branch");
+}
+
+/**
+ * Cancels a pending branch-creation proposal for a thread — no branch is created.
+ * Goes through /api/branch/reject (attaches JWT server-side).
+ */
+export async function rejectBranch(threadId: string): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch("/api/branch/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ thread_id: threadId }),
+  });
+  return handle(res, "Failed to reject branch");
 }
 
 export async function streamAgent(
@@ -257,6 +290,12 @@ export async function streamAgent(
         handlers.onPrProposal(JSON.parse(data));
       } catch (e) {
         console.error("Failed to parse pr_proposal event:", e);
+      }
+    } else if (eventType === "branch_proposal") {
+      try {
+        handlers.onBranchProposal(JSON.parse(data));
+      } catch (e) {
+        console.error("Failed to parse branch_proposal event:", e);
       }
     } else {
       handlers.onChunk(data);

@@ -78,6 +78,9 @@ export function ChatArea({
             prProposal: m.prProposal,
             prStatus: m.prStatus,
             prResult: m.prResult,
+            branchProposal: m.branchProposal,
+            branchStatus: m.branchStatus,
+            branchResult: m.branchResult,
           }))
         );
       })
@@ -99,6 +102,10 @@ export function ChatArea({
 
   function handlePrStatusChange(messageId: string, status: "confirmed" | "rejected") {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, prStatus: status } : m)));
+  }
+
+  function handleBranchStatusChange(messageId: string, status: "confirmed" | "rejected") {
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, branchStatus: status } : m)));
   }
 
   const submitMessage = useCallback(async (text: string) => {
@@ -168,6 +175,14 @@ export function ChatArea({
             setMessages((prev) => prev.map((m) =>
               m.id === agentMsgId
                 ? { ...m, content: "", toolCalls: undefined, prProposal: proposal, prStatus: "pending" }
+                : m
+            ));
+          },
+          onBranchProposal: (proposal) => {
+            proposalMessageAdded = true;
+            setMessages((prev) => prev.map((m) =>
+              m.id === agentMsgId
+                ? { ...m, content: "", toolCalls: undefined, branchProposal: proposal, branchStatus: "pending" }
                 : m
             ));
           },
@@ -259,6 +274,7 @@ export function ChatArea({
             isMobile={isMobile}
             threadId={activeSession}
             onPrStatusChange={handlePrStatusChange}
+            onBranchStatusChange={handleBranchStatusChange}
           />
         ))}
         {isTyping && <TypingIndicator />}

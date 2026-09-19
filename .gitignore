@@ -37,6 +37,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# production deploy env files (real secrets) — keep the .example templates
+ai-services.env
+frontend.env
+
 # vercel
 .vercel
 

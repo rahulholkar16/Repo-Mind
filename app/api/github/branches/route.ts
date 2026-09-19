@@ -39,7 +39,12 @@ export async function GET(req: Request) {
         body: JSON.stringify({ repo_url: repoUrl }),
       }),
       fetch(`https://api.github.com/repos/${owner}/${name}/branches?per_page=100`, {
-        headers: { Accept: "application/vnd.github+json" },
+        headers: {
+          Accept: "application/vnd.github+json",
+          ...(process.env.GITHUB_TOKEN
+            ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+            : {}),
+        },
       }),
     ]);
 
